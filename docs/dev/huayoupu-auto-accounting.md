@@ -1,6 +1,6 @@
 # 花有谱页面自动记账：实现与接入评估
 
-核查日期：2026-11-05。对象：[AldenHe/huayoupu-ledger](https://github.com/AldenHe/huayoupu-ledger)，源码版本 [`abb796d`](https://github.com/AldenHe/huayoupu-ledger/tree/abb796d829748403612f09e89909819b974565c7)。本文记录源码事实和接入判断；Veri Fin 当前功能与权限没有因此改变。未安装上游 APK，也未验证真实支付页面。
+核查日期：2026-11-05。对象：[AldenHe/huayoupu-ledger](https://github.com/AldenHe/huayoupu-ledger)，源码版本 [`abb796d`](https://github.com/AldenHe/huayoupu-ledger/tree/abb796d829748403612f09e89909819b974565c7)。本文记录源码事实和接入判断；Veri Fin 当前功能与权限没有因此改变。未安装上游 APK，也未验证真实支付页面。上游结论按 `core`、`app` 与 Manifest 逐文件核对得出，非依据 README。
 
 ## 结论
 
@@ -10,29 +10,39 @@
 
 ## 上游如何实现
 
+上游是「无障碍读节点树判定 → 通过后才申请像素 → 本地 OCR 取坐标 → 规则解析 → 单事务落账」的闭环，**判定全部发生在截图之前**。
+
 | 环节 | 已核实的实现 |
 | --- | --- |
-| 页面入口 | 用户启用无障碍服务后，监听窗口状态、窗口变化与内容变化事件；按应用渠道开关和包名白名单过滤。自动检测适配包含微信、支付宝、淘宝，不代表所有银行或支付场景都支持。 |
-| 触发判定 | 结合 Activity、可读节点文字、成功状态与唯一正金额判断当前是否为即时支付结果；排除密码、未完成支付和历史账单详情等页面。历史详情另走主动摇一摇或图片导入。 |
-| 截图 | 截图前后校验目标窗口、运行状态和识别会话；Android 14 及以上优先按窗口截图，较低版本走显示屏截图并重新核对目标。不是持续录制整段屏幕。 |
-| 本地识别 | 图片缩放压缩后，本地 OCR 输出文字与位置；`LocalOcrBillParser` 提取实付金额、方向、商户、时间、交易标识等，区分优惠、余额、退款和未支付信息。无需云端 AI。 |
-| 写入与核对 | `CaptureCoordinator` 串行协调，`LedgerStore.ingest` 在 SQLite 事务中处理；可靠、字段完整且无疑似重复的记录进入 `POSTED`，其余可进入 `REVIEW`。明确拒绝的内容可以直接跳过。 |
-| 去重 | 既有采集事件防重，也有交易身份、来源、金额、方向等核对；同金额、同商户、相近时间仅是疑似重复，不能据此直接删除真实的第二笔消费。 |
+| 服务入口 | `app/src/main/java/com/google/android/accessibility/selecttospeak/SelectToSpeakService.kt` 是**伪装的类名**（谷歌的包名里放自己的类），实际继承 `capture/ScreenCaptureService : AccessibilityService`。`res/xml/accessibility_service.xml` 监听 `typeWindowStateChanged｜typeWindowsChanged｜typeWindowContentChanged`，flags 为 `flagRetrieveInteractiveWindows｜flagIncludeNotImportantViews`，`canRetrieveWindowContent` 与 `canTakeScreenshot` 均为 true，`isAccessibilityTool="false"`。`onAccessibilityEvent` 维护 `windowId → packageName` 映射（上限 64，超出清空）。 |
+| 触发判定 | **两级闸门，都在申请像素之前。** ①`CapturePrivacy.sensitive`：节点可编辑、Activity 名匹配 `password/passwd/pwd/verification/biometric/fingerprint/faceid`、或文案含「密码/验证码/身份验证/指纹支付/刷脸支付/确认支付/立即付款」→ 直接放弃。②`PaymentPageDetector.detect`：Activity 白名单（微信仅认 `UIPageFragmentActivity` 等几个 result activity 及 `.wallet./.remittance./.wxpay.` 前缀；支付宝 `com.alipay.` 前缀）→ 排除历史账单 Activity（`detail\|orderinfo\|billhistory\|transactionrecord`）与「全部账单/账单详情/交易详情」文案 → 必须命中成功文案（`支付成功/付款成功/交易成功/转账成功/对方已收钱`…）且不含禁止文案（`请输入支付密码/确认支付/支付失败/交易关闭/已退还/退款中/待支付`…）→ 金额优先取「实付款/实付金额/支付金额」标签，剔除优惠券、红包、积分、立减类，**必须唯一且大于 0，否则 fail closed**。淘宝要求「已付总额唯一」或「有交易号且有支付时间」。 |
+| 事件去重 | `PaymentGate` 内存 claimed 集合（上限 256）按 `eventIdentity` 只 claim 一次，失败可 `release`。**它只是事件闸门，不是账目去重**。有交易号时身份取 `packageName\|transaction:交易号` 的 SHA-256；无交易号时取「包名+窗口+Activity+金额」。 |
+| 截图 | API 34 及以上走 `takeScreenshotOfWindow(windowId, …)`；较低版本走 `takeScreenshot(Display.DEFAULT_DISPLAY, …)` 并复核目标窗口。截图前后校验目标窗口、运行状态与识别会话。`ERROR_TAKE_SCREENSHOT_SECURE_WINDOW` 会中止该次采集并提示改用账单截图导入。**不是持续录制整段屏幕。** |
+| 识别队列 | `PaymentRecognitionQueue`：图片落盘，内存 `Map<taskId, Entry>`，`MAX_PENDING = 8`，`Semaphore(1)` 保证同时只有一次模型调用；每个任务带 **epoch 校验**（渠道开关世代 + 识别会话世代），授权一关就取消任务；启动或服务连上后 `resume()` 从 `tasks` 表捞 `QUEUED` 重放，`cancelAutomatic` / `cancelShake` 分别取消。 |
+| 任务持久化 | 表 `tasks(id, source, origin, created_at, status, message, image, record_id, diagnostic)`，状态机 `CAPTURING → QUEUED → RECOGNIZING → SUCCEEDED / REVIEW / FAILED / CANCELLED / SKIPPED / DUPLICATE`；图片本体存文件系统、表内列置空，处理完清理。 |
+| 本地识别 | 随包 PP-OCRv6 Tiny + ONNX Runtime 1.21.1 reduced + OpenCV 4.12.0 minimal（`third_party/ocr-runtime/*.aar`），输出**带坐标**的 `LocalOcrLine`；`core/LocalOcrBillParser` 靠坐标定位顶部大字金额与商户布局，产出 `ParsedBill(amountCents, direction, merchant, category, occurredAt, transactionId, reliable, reason, timeExplicit, refund)`。无需云端 AI，不打包 ML Kit。 |
+| 写入与核对 | `data/CaptureCoordinator` 用 `Mutex` 串行化，`LedgerStore.ingest` 在**单个 SQLite 事务**内完成：`capture_events` 按 `event_key` 主键拦截事件重放（保留 7 天）→ `record_identities(scope,value)` 精确身份匹配 → 自动付款补全 → 重复付款 → 退款关联 → 近邻候选（±120 s，**必须 transactionId 或 timeExplicit 明确**，否则不参与）→ 判 `Exact`/`Possible` → 插入并持久化身份。可靠且字段完整且无疑似重复 → `POSTED`，否则 `REVIEW`；`REVIEW` 记录后续可被可靠识别**提升**为 `POSTED`。 |
+| 去重 | 既有采集事件防重，也有交易身份、来源、金额、方向等核对；同金额、同商户、相近时间仅是疑似重复，不能据此直接删除真实的第二笔消费。`record_deletions` 保留删除墓碑，避免重看页面被记回。 |
 
-源码依据：[服务与 Manifest](https://github.com/AldenHe/huayoupu-ledger/blob/abb796d829748403612f09e89909819b974565c7/app/src/main/AndroidManifest.xml)、[页面检测](https://github.com/AldenHe/huayoupu-ledger/blob/abb796d829748403612f09e89909819b974565c7/core/src/main/kotlin/net/ankio/ledger/core/PaymentPageDetector.kt)、[截屏服务](https://github.com/AldenHe/huayoupu-ledger/blob/abb796d829748403612f09e89909819b974565c7/app/src/main/java/net/ankio/ledger/capture/ScreenCaptureService.kt)、[本地识别](https://github.com/AldenHe/huayoupu-ledger/blob/abb796d829748403612f09e89909819b974565c7/app/src/main/java/net/ankio/ledger/ocr/LocalRecognitionClient.kt)、[落账与去重](https://github.com/AldenHe/huayoupu-ledger/blob/abb796d829748403612f09e89909819b974565c7/app/src/main/java/net/ankio/ledger/data/LedgerStore.kt)。
+身份命名空间属于**签发方**而非商户名，形如 `alipay` / `wechat` / `app:com.taobao.taobao`（`data/TransactionIdentity.kt`），同一 scope 只允许一个值，冲突时判为歧义而非取首项。
 
-当前 Manifest 没有声明联网、短信或通知监听权限。模型和运行库随包提供；本地处理仍然涉及敏感支付页面，离线并不等于不需要权限管理与数据留存控制。
+源码依据：[服务与 Manifest](https://github.com/AldenHe/huayoupu-ledger/blob/abb796d829748403612f09e89909819b974565c7/app/src/main/AndroidManifest.xml)、[无障碍配置](https://github.com/AldenHe/huayoupu-ledger/blob/abb796d829748403612f09e89909819b974565c7/app/src/main/res/xml/accessibility_service.xml)、[页面检测](https://github.com/AldenHe/huayoupu-ledger/blob/abb796d829748403612f09e89909819b974565c7/core/src/main/kotlin/net/ankio/ledger/core/PaymentPageDetector.kt)、[隐私过滤](https://github.com/AldenHe/huayoupu-ledger/blob/abb796d829748403612f09e89909819b974565c7/core/src/main/kotlin/net/ankio/ledger/core/CapturePrivacy.kt)、[截屏服务](https://github.com/AldenHe/huayoupu-ledger/blob/abb796d829748403612f09e89909819b974565c7/app/src/main/java/net/ankio/ledger/capture/ScreenCaptureService.kt)、[识别队列](https://github.com/AldenHe/huayoupu-ledger/blob/abb796d829748403612f09e89909819b974565c7/app/src/main/java/net/ankio/ledger/capture/PaymentRecognitionQueue.kt)、[本地识别](https://github.com/AldenHe/huayoupu-ledger/blob/abb796d829748403612f09e89909819b974565c7/app/src/main/java/net/ankio/ledger/ocr/LocalRecognitionClient.kt)、[规则解析](https://github.com/AldenHe/huayoupu-ledger/blob/abb796d829748403612f09e89909819b974565c7/core/src/main/kotlin/net/ankio/ledger/core/LocalOcrBillParser.kt)、[落账与去重](https://github.com/AldenHe/huayoupu-ledger/blob/abb796d829748403612f09e89909819b974565c7/app/src/main/java/net/ankio/ledger/data/LedgerStore.kt)。
+
+当前 Manifest 只有 `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` 一个敏感权限，`allowBackup="false"`，未声明联网、短信或通知监听权限。模型和运行库随包提供；本地处理仍然涉及敏感支付页面，离线并不等于不需要权限管理与数据留存控制。
 
 ## 与 Veri Fin 的差异
 
 | 项目 | 花有谱 | Veri Fin 当前实现 |
 | --- | --- | --- |
-| 技术栈 | Kotlin 原生应用与 Kotlin core | Flutter/Dart，Android 原生桥 |
-| 截图来源 | 自动页面识别，也支持主动导入 | 用户分享图片或主动选择截图 |
-| 解析 | 本地 OCR + 本地规则 | 本地 ML Kit OCR + 用户配置的 AI 文本解析 |
-| 保存 | 可靠结果可自动入账，否则核对 | 全部先生成草稿，由用户确认 |
-| 最低系统 | 上游 `minSdk = 30`，即 Android 11 | 当前最低设置至少 API 23，不能因借用组件默认整体提高 |
-| 核心数据写入 | 自有原生 SQLite 数据层 | `VeriFinController → LedgerRepository → SQLite` |
+| 技术栈 | Kotlin 原生应用与 Kotlin core | Flutter/Dart，`platform_bridge.dart` 单一 MethodChannel（`verifin/app`） |
+| 截图来源 | 无障碍自动识别，也支持摇一摇与主动导入 | 用户分享图片（`ShareReceiverActivity`）或相册选图 |
+| 解析 | 本地 OCR 输出坐标 + `LocalOcrBillParser` 坐标规则 | 本地 ML Kit **仅返回拼接文本**（`result.text`）+ 用户配置的 AI 文本解析 |
+| 保存 | 可靠结果自动入账，否则进入待核对 | 全部先生成 `EntryDetailPage` 草稿，由用户确认 |
+| 待处理队列 | `tasks` 表 + 内存队列 + epoch 取消 + 崩溃重放 | 无持久化队列；`consumeCaptureImage` / `consumeCaptureText` 是「取走即清」的内存消息 |
+| 后台运行时 | 原生组件在应用进程中常驻 | **没有 Application 子类**；引擎由 `MainActivity.configureFlutterEngine` 创建，Activity 销毁即无 Dart 运行时 |
+| 最低系统 | `minSdk = 30`（Android 11），`targetSdk = 36` | `minSdk = max(flutter.minSdkVersion, 23)`，不能因借用组件默认整体提高 |
+| 核心数据写入 | 自有原生 SQLite `LedgerStore` 即权威账本 | `VeriFinController → LedgerRepository → SQLite`，Controller 另持内存集合、行快照与写队列 |
+| 许可证 | `GPL-3.0-only`（NOTICE 已声明）；OCR 模型与 AAR 各有许可 | `GPL-3.0-or-later` |
 
 Veri Fin 现有边界见 [截图识账与外部意图接口](auto-capture.md)，已有外部工具送入文本的方式见 [自动化入口](../product/automation.md)。Tasker/MacroDroid 可以把文本送入确认页，这条路线仍需要确认，不能等同于完整无感落账。
 
@@ -54,7 +64,19 @@ Veri Fin 现有边界见 [截图识账与外部意图接口](auto-capture.md)，
 
 源码与现有 `AGENTS.md` 仍描述原有「不监听、确认后保存」行为。定制需求已允许无障碍和自动记账，后续实现时需同步这些规则与产品文档，区分新自动采集入口、原有手动入口及 AI 查询工具；这不意味着给只读 AI 查询工具增加写账能力。
 
-上游还使用了 `com.google.android.accessibility.selecttospeak.SelectToSpeakService` 这一兼容类名，实际继承自己的截图服务，并非 Google 提供的实现。其 README 描述特定微信页面的对照观察，不能据此认为这是稳定接口，也不能保证以后微信版本、系统或设备仍可读取。支付页面改版、无可读节点、安全窗口以及系统权限限制都会影响可用性，应保留手动补记入口。依据：[兼容类](https://github.com/AldenHe/huayoupu-ledger/blob/abb796d829748403612f09e89909819b974565c7/app/src/main/java/com/google/android/accessibility/selecttospeak/SelectToSpeakService.kt)、[上游说明](https://github.com/AldenHe/huayoupu-ledger/blob/abb796d829748403612f09e89909819b974565c7/README.md)。
+上游还使用了 `com.google.android.accessibility.selecttospeak.SelectToSpeakService` 这一兼容类名，实际继承自己的截图服务，并非 Google 提供的实现。README 描述的是特定微信页面的对照观察，不能据此认为这是稳定接口，也不能保证以后微信版本、系统或设备仍可读取。支付页面改版、无可读节点、安全窗口以及系统权限限制都会影响可用性，应保留手动补记入口。依据：[兼容类](https://github.com/AldenHe/huayoupu-ledger/blob/abb796d829748403612f09e89909819b974565c7/app/src/main/java/com/google/android/accessibility/selecttospeak/SelectToSpeakService.kt)、[上游说明](https://github.com/AldenHe/huayoupu-ledger/blob/abb796d829748403612f09e89909819b974565c7/README.md)。
+
+### 与 Veri Fin 当前代码的具体落差
+
+结论都来自本地源码核对，随相关代码改动可能失效：
+
+| 落差 | 现状 | 影响 |
+| --- | --- | --- |
+| 后台 Dart 运行时 | `android/app/src/main/kotlin/top/talyra42/verifin/` 下**没有 Application 子类**；Manifest 用 `${applicationName}` 默认值；通道在 `MainActivity.configureFlutterEngine` 注册 | Activity 销毁即无 Dart 运行时，原生采集到的结果没有落点；要做真后台必须先加应用级 `FlutterEngine` 缓存与 Application 生命周期 |
+| 原生队列语义 | `consumeCaptureImage` / `consumeCaptureText` 是内存字段 + 取走即清 | 不能当可靠后台队列；进程被杀即丢，也无法区分「已落账」与「只是取走了」 |
+| OCR 坐标 | `lib/app/screenshot_recognizer_io.dart` 只返回 `result.text` | 上游 `LocalOcrBillParser` 依赖 `LocalOcrLine` 坐标与图片宽高，**不能整文件搬运**；需先取 ML Kit 的 block/line bounding box，或改写为不依赖位置的规则 |
+| 账目写入 | 权威是 `VeriFinController`（内存集合 + 行快照 + 写队列），`LedgerRepository` 的整表保存语义是「落库后该表等于传入集合」 | 原生服务若直连 SQLite 会绕过 Controller，导致内存/磁盘不一致、预算与界面不刷新；采集必须回到 Dart 层落账 |
+| minSdk | Veri Fin 为 23，上游为 30 | 无障碍截图 API 需按 `Build.VERSION.SDK_INT` 能力探测（窗口截图要求 API 34），低版本禁用该功能，不抬 minSdk |
 
 ## 对个人需求的适配判断
 
@@ -69,6 +91,13 @@ Veri Fin 现有边界见 [截图识账与外部意图接口](auto-capture.md)，
 
 本次结论来自源码阅读，没有把上游测试或 README 的小样本成绩视为本机真机验收。本次仅记录评估和接入设计，没有引入上游依赖、权限或功能。
 
+## 未决事项
+
+以下问题会直接决定实现结构，需在动工前定稿；本页不预设答案：
+
+- **首批做到哪一步**：只做真机探针（见「分批与验收前置」第 0 批），还是直接做「后台采集、打开后补记」，或一次性做到应用级常驻引擎的完整后台自动记账。
+- **识别与规则解析放哪一层**：在 Dart 侧扩展现有 ML Kit（拿坐标、把规则改写为 Dart，不增包体积但与引擎绑定），或按上游在 Kotlin 侧引入独立识别运行库（后台可独立识别，但要引入 ONNX/OpenCV 的包体积、ABI 与许可维护）。
+
 ## 定制接入设计
 
 本节是建议的实现设计，尚不是已发布能力。目标设备为小米 14，覆盖微信、支付宝；实际 Android / HyperOS 版本需实机核对，不根据机型推断当前系统版本。
@@ -81,7 +110,20 @@ Veri Fin 现有边界见 [截图识账与外部意图接口](auto-capture.md)，
 | 另 fork 花有谱作为主应用 | 已有原生采集和本地识别链路 | 重新适配资产、预算、账户口径、备份及数据迁移 | 适合以花有谱为主要产品的情况，当前需求不占优势 |
 | 花有谱改成独立采集助手，向 Veri Fin 送数据 | 两边代码相对分离 | 两个 APK、跨应用接口、权限和消息确认；现有 Intent 仍会拉起确认页 | 不作为首选 |
 
-当前仓库本身已是自有 fork，不必再创建同源的新 GitHub 仓库。可用 `feature/auto-accounting` 分支隔离开发，继续由现有 CI 生成后续版本；已推送的 `v1.20.16` 标签不移动，也不包含本节设想的功能。
+当前仓库本身已是自有 fork，不必再创建同源的新 GitHub 仓库。可用 `feature/auto-accounting` 分支隔离开发，继续由现有 CI 生成后续版本；已推送的历史标签不移动，也不包含本节设想的功能。
+
+### 分批与验收前置
+
+功能较大，按批次推进，每批单独可验证；**后一批不通过不进入下一批**。
+
+| 批次 | 交付 | 通过标准 |
+| --- | --- | --- |
+| 0 真机探针 | 最小无障碍服务，只记录微信/支付宝支付结果页能否读到节点树、成功文案与金额，以及能否截到图 | 小米 14 上两种渠道各一笔真实付款都能拿到节点树；能确认截图 API 可用或给出明确的不可用原因。**这批不过，后面都不做** |
+| 1 前台闭环 | 采集任务交 Dart（引擎在时），ML Kit 取坐标 + 规则解析，产出草稿或待核对 | 不落账也能看到解析结果；支付页、非支付页、密码页分类正确 |
+| 2 后台运行时 | 应用级常驻引擎，真正自动入账 | 「应用未打开时完成扣款与预算更新」验证通过 |
+| 3 待核对与设置 | 待核对列表、暂停采集、失败状态、应用锁交互 | 可用、可更正、可删除、可暂停 |
+
+探针阶段先验证节点树与截图这两个外部前提，再决定解析规则要不要照搬上游坐标算法；在未验证的前提下写完整解析器，返工风险最高。
 
 ### 使用效果与范围
 
@@ -95,13 +137,15 @@ Veri Fin 现有边界见 [截图识账与外部意图接口](auto-capture.md)，
 
 ```text
 微信 / 支付宝支付结果页
-  → Kotlin 无障碍服务：渠道过滤、成功判定、窗口复核
-  → 本地截图 + ML Kit（保留文字坐标）+ Kotlin 规则解析
-  → 持久化采集任务：稳定任务 ID、来源身份、目标账本、处理状态
+  → Kotlin 无障碍服务：隐私过滤 + 渠道过滤 + 成功判定（全部在申请像素之前）
+  → 截图 + 持久化采集任务：稳定任务 ID、渠道、交易标识、目标账本、处理状态
+  → Dart 侧：ML Kit 取带坐标的文字行 + 规则解析（保留可靠性判断与拒绝原因）
   → 自动记账协调器：可靠性判断、分类匹配、重复核对
   → 唯一账目 Controller → Repository 事务
   → 交易 + 采集回执同时提交 → 更新预算、账户及界面
 ```
+
+原生侧只负责**采集与待处理证据传递**，识别与落账都在 Dart；这条分工是与上游最大的结构差别，因为 Veri Fin 的权威账目在 Controller 而不在原生数据层。
 
 可选择性移植上游的页面检测、隐私过滤、金额解析和重复判定；需保留其辅助规则及测试样例来源。`ScreenCaptureService` 依赖上游应用对象、运行状态、队列和数据层，不能整文件复制后直接运行。第一版保留 Veri Fin 已有 ML Kit，只有真实截图暴露识别瓶颈时才评估 PP-OCR；两种 OCR 的效果不能直接等同。
 
@@ -123,6 +167,6 @@ Flutter 官方支持引擎独立于 Activity 运行，但这不是后台永不�
 
 ### 适配和验证边界
 
-自动截屏能力要求 Android API 30 及以上；按窗口截屏要求 API 34 及以上。建议保留应用原最低版本，在不支持的系统上禁用此功能；安全窗口截图失败则停止该次采集，不能保证每个支付界面都可读取。依据：[Android AccessibilityService API](https://developer.android.com/reference/android/accessibilityservice/AccessibilityService)。
+无障碍截屏能力要求 Android API 30 及以上；按窗口截屏要求 API 34 及以上（上游即按此分支：34+ 用 `takeScreenshotOfWindow`，更低版本用显示屏截图再复核目标窗口）。保留应用原最低版本（23），在不支持的系统上禁用此功能；安全窗口截图失败则停止该次采集，不能保证每个支付界面都可读取。依据：[Android AccessibilityService API](https://developer.android.com/reference/android/accessibilityservice/AccessibilityService)。
 
 小米 14 真机优先核对：微信/支付宝各一笔付款、连续同金额两笔、重复打开页面、切后台与恢复、关闭服务、应用锁、指定账户扣款和一次重复导入。自动采集涉及原生服务与系统生命周期，不能只用 Dart 单测代替；后续实现采用这些关键检查及相关解析/幂等测试，不因调研运行全量测试。系统自启动和电池设置按实机 HyperOS 版本定位，不预写未经核实的菜单路径。
