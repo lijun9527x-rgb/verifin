@@ -246,7 +246,7 @@ class _BudgetSettingsPageState extends State<BudgetSettingsPage> {
                       _collapsedCategories.add(category.id);
                     }
                   }),
-            onTap: openMenu,
+            onTap: () => unawaited(_editDefaultCategoryBudget(category)),
             onActions: openMenu,
           ),
         ),

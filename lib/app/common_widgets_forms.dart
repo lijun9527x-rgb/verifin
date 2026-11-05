@@ -34,7 +34,7 @@ class VeriEntryTypeToggle extends StatelessWidget {
       accentOf: (type) => type == EntryType.expense
           ? veriSemantic(context, veriExpense)
           : veriSemantic(context, veriIncome),
-      // Key 只挂选中项：分段控件会把选中项多渲染一份用于滑动动画。
+      // Key 只挂选中项：与记账页 `entry_type_selected_*` 保持同一契约。
       keyOf: (type) =>
           type == dimension ? Key('dimension_toggle_${type.name}') : null,
       onChanged: onChanged,
@@ -722,6 +722,9 @@ const double _kSegmentSpacing = 2;
 ///
 /// - 颜色全部取自设计令牌（[veriSurfaceAltDark] / [veriSurfaceLight] / 卡片表面色），
 ///   调用方只能通过 [accentOf] 指定**语义强调色**（如支出红、收入青），不能自定义底板。
+/// - **标签固定在各选项槽位里不动，只有选中底板平移**：用 `AnimatedToggleSwitch.size`
+///   而不是 `.rolling`。`.rolling` 会把选中文字额外渲染到胶囊前景，并按移动距离对文字
+///   执行 `Transform.rotate`（宽控件里角度远超一圈），表现成「文字转一圈再移动」。
 /// - 自带 `Semantics`：整组标注为选中项，单个选项标注为按钮，补足第三方控件缺失的语义。
 /// - 标签用文字，不用图标；图标型开关仍走 [CompactSwitchRow]。
 class VeriSegmentedControl<T> extends StatelessWidget {
@@ -773,7 +776,7 @@ class VeriSegmentedControl<T> extends StatelessWidget {
         label: semanticLabel,
         value: labelOf(selected),
         container: true,
-        child: AnimatedToggleSwitch<T>.rolling(
+        child: AnimatedToggleSwitch<T>.size(
           current: selected,
           values: values,
           onChanged: onChanged,
@@ -786,7 +789,9 @@ class VeriSegmentedControl<T> extends StatelessWidget {
           indicatorSize: Size.fromWidth(_indicatorWidth(constraints.maxWidth)),
           animationDuration: const Duration(milliseconds: 260),
           animationCurve: Curves.easeOutCubic,
+          // 文字不淡入淡出、不缩放：选中与否只体现在文字色与字重上，位移全交给底板。
           iconOpacity: 1,
+          selectedIconScale: 1,
           style: ToggleStyle(
             backgroundColor: track,
             indicatorColor: indicator,
@@ -803,20 +808,18 @@ class VeriSegmentedControl<T> extends StatelessWidget {
             boxShadow: const <BoxShadow>[],
             indicatorBoxShadow: const <BoxShadow>[],
           ),
-          iconBuilder: (value, foreground) {
+          iconBuilder: (value) {
             final selectedNow = value == selected;
             final enabled = onChanged != null;
             final accent = accentOf?.call(value);
             final color = selectedNow
                 ? (accent ?? scheme.onSurface.withValues(alpha: 0.94))
-                : scheme.onSurface.withValues(alpha: foreground ? 0.94 : 0.48);
+                : scheme.onSurface.withValues(alpha: 0.48);
             return Opacity(
               opacity: enabled ? 1 : 0.5,
               child: Text(
                 labelOf(value),
-                // rolling 会把选中项额外渲染一份用于滑动动画；Key 只挂前景副本，
-                // 否则同一 Key 在一帧里出现两次（调用点的 findsOneWidget 会失败）。
-                key: foreground ? keyOf?.call(value) : null,
+                key: keyOf?.call(value),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center,

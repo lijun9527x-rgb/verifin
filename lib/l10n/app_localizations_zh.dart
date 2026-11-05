@@ -4273,6 +4273,11 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String budgetOverrideCategoryAmountTitle(String category, String scope) {
+    return '设置$category$scope预算';
+  }
+
+  @override
   String get budgetCycleNotSet => '未设置';
 
   @override

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../app/app_theme.dart';
@@ -8,6 +10,7 @@ import '../app/models.dart';
 import '../app/veri_fin_scope.dart';
 import '../l10n/app_localizations.dart';
 import 'budget_pages.dart';
+import 'sheets.dart';
 
 class HomeCategoryBudgetPanel extends StatelessWidget {
   const HomeCategoryBudgetPanel({
@@ -80,7 +83,10 @@ class HomeCategoryBudgetPanel extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 12),
               child: InkWell(
-                onTap: openBudgets,
+                // 行主体直接编辑该分类在本期（首页所选键月）的额度；整卡的
+                // 「查看全部」入口仍然进总览。
+                onTap: () =>
+                    unawaited(_editCategoryBudget(context, snapshot.category)),
                 child: Column(
                   children: [
                     Row(
@@ -137,5 +143,30 @@ class HomeCategoryBudgetPanel extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  /// 编辑该分类在 [month]（首页当前预算键月）的单期额度。
+  ///
+  /// 复用统一数字键盘，不另造金额编辑器；取消返回 null，不写入。
+  Future<void> _editCategoryBudget(
+    BuildContext context,
+    Category category,
+  ) async {
+    final controller = VeriFinScope.of(context);
+    final l10n = AppLocalizations.of(context);
+    final scope = controller.budgetCycleIsCustom
+        ? l10n.budgetOverrideScopePeriod
+        : l10n.budgetOverrideScopeMonth;
+    final amount = await showNumberPadSheet(
+      context,
+      title: l10n.budgetOverrideCategoryAmountTitle(category.label, scope),
+      initialAmount: controller.categoryBudget(month, category.id),
+      allowZero: true,
+      currencyCode: controller.activeBook.baseCurrencyCode,
+    );
+    if (!context.mounted || amount == null) {
+      return;
+    }
+    controller.setCategoryBudget(month, category.id, amount);
   }
 }

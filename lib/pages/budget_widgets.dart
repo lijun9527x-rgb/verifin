@@ -649,8 +649,8 @@ class _CategoryBudgetRow extends StatelessWidget {
 
   final CategoryBudgetSnapshot snapshot;
 
-  /// 点击行的回调；总览页用于编辑单期覆盖，设置页用于编辑默认预算。
-  /// null 仍可供其它纯展示场景使用。
+  /// 点击行的回调：直接编辑该行对应口径的预算额度（总览页=所选键月的单期覆盖，
+  /// 设置页=分类默认预算）。null 仍可供其它纯展示场景使用。
   final VoidCallback? onTap;
 
   /// 分类层级深度（0 为顶级），用于左侧缩进。
@@ -664,6 +664,8 @@ class _CategoryBudgetRow extends StatelessWidget {
   final VoidCallback? onToggle;
 
   /// 打开当前分类预算的操作菜单；无菜单时为 null。
+  ///
+  /// 只有这个按钮开菜单：行主体直接进金额编辑，展开箭头只管子树。
   final VoidCallback? onActions;
 
   @override
@@ -699,6 +701,23 @@ class _CategoryBudgetRow extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: <Widget>[
+              // 三点放在行首（内容侧最左）：行主体与右侧展开箭头各有各的动作，
+              // 菜单入口和它们分开，避免误触。
+              if (onActions != null)
+                IconButton(
+                  key: ValueKey<String>(
+                    'category_budget_actions_${snapshot.category.id}',
+                  ),
+                  tooltip: snapshot.category.label,
+                  visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints.tightFor(
+                    width: 36,
+                    height: 40,
+                  ),
+                  onPressed: onActions,
+                  icon: const Icon(Icons.more_vert, size: 20),
+                ),
               CategoryIconBox(
                 iconCode: snapshot.category.iconCode,
                 color: color,
@@ -787,21 +806,6 @@ class _CategoryBudgetRow extends StatelessWidget {
                   ),
                 ),
               ],
-              if (onActions != null)
-                IconButton(
-                  key: ValueKey<String>(
-                    'category_budget_actions_${snapshot.category.id}',
-                  ),
-                  tooltip: snapshot.category.label,
-                  visualDensity: VisualDensity.compact,
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints.tightFor(
-                    width: 40,
-                    height: 40,
-                  ),
-                  onPressed: onActions,
-                  icon: const Icon(Icons.more_vert),
-                ),
             ],
           ),
         ),

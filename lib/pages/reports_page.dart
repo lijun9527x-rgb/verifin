@@ -228,8 +228,7 @@ class _ReportsPageState extends State<ReportsPage> {
             selected: _tab,
             semanticLabel: l10n.statRangeLabel,
             labelOf: (tab) => tab.label(l10n),
-            // 与记账页 `entry_type_selected_*` 同一契约：Key 只挂在选中项上
-            // （分段控件会把选中项多渲染一份用于滑动动画）。
+            // 与记账页 `entry_type_selected_*` 同一契约：Key 只挂在选中项上。
             keyOf: (tab) =>
                 tab == _tab ? Key('reports_tab_selected_${tab.name}') : null,
             onChanged: (tab) => setState(() => _tab = tab),

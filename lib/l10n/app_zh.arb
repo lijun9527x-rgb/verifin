@@ -2839,6 +2839,17 @@
       }
     }
   },
+  "budgetOverrideCategoryAmountTitle": "设置{category}{scope}预算",
+  "@budgetOverrideCategoryAmountTitle": {
+    "placeholders": {
+      "category": {
+        "type": "String"
+      },
+      "scope": {
+        "type": "String"
+      }
+    }
+  },
   "budgetCycleNotSet": "未设置",
   "commonClear": "清除",
   "currencySearchHint": "搜索代码、名称或符号",

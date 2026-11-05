@@ -1719,6 +1719,17 @@
       }
     }
   },
+  "budgetOverrideCategoryAmountTitle": "Set {category} budget for {scope}",
+  "@budgetOverrideCategoryAmountTitle": {
+    "placeholders": {
+      "category": {
+        "type": "String"
+      },
+      "scope": {
+        "type": "String"
+      }
+    }
+  },
   "budgetCycleNotSet": "Not set",
   "commonClear": "Clear",
   "currencySearchHint": "Search by code, name, or symbol",

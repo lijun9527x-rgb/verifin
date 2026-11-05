@@ -503,7 +503,7 @@ class _BudgetOverviewPageState extends State<BudgetOverviewPage> {
                       _collapsedCategories.add(category.id);
                     }
                   }),
-            onTap: openMenu,
+            onTap: () => unawaited(_editCategoryBudget(category)),
             onActions: openMenu,
           ),
         ),
@@ -517,6 +517,7 @@ class _BudgetOverviewPageState extends State<BudgetOverviewPage> {
     return rows;
   }
 
+  /// 直接编辑该分类在**当前所选键月**的单期额度（历史月份写回该月，不回落到本月）。
   Future<void> _editCategoryBudget(Category category) async {
     final controller = VeriFinScope.of(context);
     final l10n = AppLocalizations.of(context);
@@ -525,7 +526,7 @@ class _BudgetOverviewPageState extends State<BudgetOverviewPage> {
         : l10n.budgetOverrideScopeMonth;
     final amount = await showNumberPadSheet(
       context,
-      title: l10n.budgetOverrideAmountTitle(scope),
+      title: l10n.budgetOverrideCategoryAmountTitle(category.label, scope),
       initialAmount: controller.categoryBudget(_month, category.id),
       allowZero: true,
       currencyCode: controller.activeBook.baseCurrencyCode,

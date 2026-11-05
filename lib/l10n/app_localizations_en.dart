@@ -4400,6 +4400,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String budgetOverrideCategoryAmountTitle(String category, String scope) {
+    return 'Set $category budget for $scope';
+  }
+
+  @override
   String get budgetCycleNotSet => 'Not set';
 
   @override

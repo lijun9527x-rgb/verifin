@@ -1,8 +1,30 @@
+import 'dart:math' as math;
+
 import 'package:animated_toggle_switch/animated_toggle_switch.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:verifin/app/app_theme.dart';
 import 'package:verifin/app/common_widgets.dart';
+
+/// 分段控件子树里最大的旋转角（弧度）。
+///
+/// `Transform.rotate` 生成 `Matrix4.rotationZ`，第二行第一列即 sin(angle)；平移与缩放
+/// 的那一项都是 0，因此这个值只反映旋转。断言它接近 0 就等于「文字没有转动」。
+double _maxLabelRotation(WidgetTester tester) {
+  var maxAngle = 0.0;
+  final transforms = find.descendant(
+    of: find.byType(VeriSegmentedControl<String>),
+    matching: find.byType(Transform),
+  );
+  for (final element in transforms.evaluate()) {
+    final matrix = (element.widget as Transform).transform;
+    maxAngle = math.max(
+      maxAngle,
+      math.atan2(matrix.storage[1], matrix.storage[0]).abs(),
+    );
+  }
+  return maxAngle;
+}
 
 void main() {
   /// 轨道的横向内边距与选项间隙，必须与 `VeriSegmentedControl` 内部取值一致。
@@ -81,10 +103,11 @@ void main() {
       onChanged: (_) {},
     );
 
-    // rolling 会把选中项额外渲染一份用于滑动动画，因此按“至少一个”断言。
-    expect(find.text('支出'), findsWidgets);
-    expect(find.text('收入'), findsWidgets);
-    expect(find.text('转账'), findsWidgets);
+    // 每个选项只渲染一份文字：标签固定在各自槽位里，选中底板是唯一的动效层。
+    // 曾经用 `.rolling` 时选中项会被额外渲染一份到胶囊前景，这里断言不允许再出现。
+    expect(find.text('支出'), findsOneWidget);
+    expect(find.text('收入'), findsOneWidget);
+    expect(find.text('转账'), findsOneWidget);
   });
 
   testWidgets('点击未选中项回调，点击当前项不回调', (tester) async {
@@ -99,6 +122,28 @@ void main() {
     await tester.tap(find.text('收入'));
     await tester.pumpAndSettle();
     expect(tapped, <String>['收入']);
+  });
+
+  // 回归：曾经用 `AnimatedToggleSwitch.rolling`，它按「移动距离 ÷ 胶囊半径」算旋转角，
+  // 在宽控件里角度远超一圈，表现为「文字转一圈再移动」。切换过程中（不只是结束时）
+  // 都不允许出现旋转。
+  testWidgets('切换过程中标签文字不旋转', (tester) async {
+    await pumpControl(
+      tester,
+      values: const <String>['支出', '收入', '转账'],
+      selected: '支出',
+      onChanged: (_) {},
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('转账'));
+    await tester.pump();
+    // 动画中段：只看 `pumpAndSettle` 后的终态会漏掉旋转。
+    await tester.pump(const Duration(milliseconds: 130));
+    expect(_maxLabelRotation(tester), lessThan(0.01));
+
+    await tester.pumpAndSettle();
+    expect(_maxLabelRotation(tester), lessThan(0.01));
   });
 
   testWidgets('提供整组与单项的无障碍语义', (tester) async {

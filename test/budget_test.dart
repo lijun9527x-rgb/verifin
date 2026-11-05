@@ -75,15 +75,13 @@ void main() {
     await tester.tap(find.byKey(const Key('number_pad_ok')));
     await tester.pumpAndSettle();
 
-    // 设餐饮默认预算 600。
+    // 设餐饮默认预算 600：分类行主体直接进默认额度编辑，菜单只由左侧三点打开。
     await tester.scrollUntilVisible(
       find.text('餐饮'),
       200,
       scrollable: firstVerticalScrollable(),
     );
     await tester.tap(find.text('餐饮'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('设置').last);
     await tester.pumpAndSettle();
     expect(find.text('设置餐饮默认预算'), findsOneWidget);
     for (final key in <String>['6', '00']) {
@@ -185,11 +183,8 @@ void main() {
 
     await tester.tap(find.text('餐饮'));
     await tester.pumpAndSettle();
-    expect(find.text('设置'), findsOneWidget);
-    expect(find.text('清空预算'), findsOneWidget);
-
-    await tester.tap(find.text('设置'));
-    await tester.pumpAndSettle();
+    // 行主体直接进金额编辑：标题写明分类与口径，不再先弹菜单。
+    expect(find.text('设置餐饮本月预算'), findsOneWidget);
     await tester.tap(find.byKey(const Key('number_key_C')));
     for (final key in <String>['9', '00']) {
       await tester.tap(find.byKey(Key('number_key_$key')));
@@ -199,9 +194,14 @@ void main() {
     expect(controller.categoryBudget(july, 'dining'), 900);
     expect(controller.defaultCategoryBudget('dining'), 0);
 
-    await tester.ensureVisible(find.text('餐饮'));
+    // 清空单期覆盖只从左侧三点的菜单走。
+    await tester.ensureVisible(
+      find.byKey(const ValueKey<String>('category_budget_actions_dining')),
+    );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('餐饮'));
+    await tester.tap(
+      find.byKey(const ValueKey<String>('category_budget_actions_dining')),
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.text('清空预算'));
     await tester.pumpAndSettle();
@@ -209,6 +209,59 @@ void main() {
     expect(controller.categoryBudget(july, 'dining'), 0);
     // 清除餐饮不能误伤同月其它分类。
     expect(controller.categoryBudget(july, 'entertainment'), 250);
+    controller.dispose();
+  });
+
+  testWidgets('预算总览：行主体直接编辑所选键月，三点在左侧只开菜单', (WidgetTester tester) async {
+    final controller = await makeController();
+    final july = DateTime(2026, 7);
+    final nowKeyMonth = controller.budgetKeyMonthFor(DateTime.now());
+    controller.setDefaultCategoryBudget('dining', 600);
+
+    await tester.pumpWidget(
+      VeriFinScope(
+        controller: controller,
+        child: zhMaterialApp(home: BudgetOverviewPage(initialMonth: july)),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('餐饮'),
+      250,
+      scrollable: firstVerticalScrollable(),
+    );
+    await tester.ensureVisible(find.text('餐饮'));
+    await tester.pumpAndSettle();
+
+    // 三点在分类图标左侧：菜单入口与行主体、展开箭头分开，避免误触。
+    final actions = find.byKey(
+      const ValueKey<String>('category_budget_actions_dining'),
+    );
+    expect(actions, findsOneWidget);
+    expect(
+      tester.getTopLeft(actions).dx,
+      lessThan(tester.getTopLeft(find.text('餐饮')).dx),
+    );
+
+    // 行主体直接进金额编辑，写入的是所选键月而不是今天所在月份。
+    await tester.tap(find.text('餐饮'));
+    await tester.pumpAndSettle();
+    expect(find.text('设置餐饮本月预算'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('number_key_C')));
+    for (final key in <String>['8', '00']) {
+      await tester.tap(find.byKey(Key('number_key_$key')));
+    }
+    await tester.tap(find.byKey(const Key('number_pad_ok')));
+    await tester.pumpAndSettle();
+    expect(controller.categoryBudget(july, 'dining'), 800);
+    expect(controller.categoryBudget(nowKeyMonth, 'dining'), 600);
+
+    // 三点只开菜单，不动额度。
+    await tester.tap(actions);
+    await tester.pumpAndSettle();
+    expect(find.text('设置'), findsOneWidget);
+    expect(find.text('清空预算'), findsOneWidget);
+    expect(controller.categoryBudget(july, 'dining'), 800);
     controller.dispose();
   });
 
@@ -239,9 +292,19 @@ void main() {
 
     await tester.tap(find.text('餐饮'));
     await tester.pumpAndSettle();
-    expect(find.text('设置'), findsOneWidget);
-    expect(find.text('清空预算'), findsOneWidget);
+    // 自定义预算周期：行主体直接编辑，标题用「本期」口径；取消不写入。
+    expect(find.text('设置餐饮本期预算'), findsOneWidget);
+    Navigator.of(
+      tester.element(find.byKey(const Key('number_pad_display'))),
+    ).pop();
+    await tester.pumpAndSettle();
+    expect(controller.categoryBudget(july, 'dining'), 800);
 
+    // 恢复沿用默认只从左侧三点的菜单走。
+    await tester.tap(
+      find.byKey(const ValueKey<String>('category_budget_actions_dining')),
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.text('清空预算'));
     await tester.pumpAndSettle();
     expect(controller.categoryBudgetIsOverride(july, 'dining'), isFalse);
@@ -293,7 +356,8 @@ void main() {
     );
 
     expect(find.text('剩余 -25'), findsOneWidget);
-    await tester.tap(find.byType(HomeCategoryBudgetPanel));
+    // 卡片标题/查看全部仍进总览；分类行主体改成直接编辑，因此这里点标题。
+    await tester.tap(find.text('分类预算'));
     await tester.pumpAndSettle();
 
     // 总览页标题为「预算」。

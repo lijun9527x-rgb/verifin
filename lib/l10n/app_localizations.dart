@@ -7838,6 +7838,12 @@ abstract class AppLocalizations {
   /// **'设置{scope}预算'**
   String budgetOverrideAmountTitle(String scope);
 
+  /// No description provided for @budgetOverrideCategoryAmountTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'设置{category}{scope}预算'**
+  String budgetOverrideCategoryAmountTitle(String category, String scope);
+
   /// No description provided for @budgetCycleNotSet.
   ///
   /// In zh, this message translates to:
