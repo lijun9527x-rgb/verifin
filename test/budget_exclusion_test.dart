@@ -1,3 +1,4 @@
+import 'package:verifin/pages/home_category_budget_panel.dart';
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -8,7 +9,6 @@ import 'package:verifin/app/models.dart';
 import 'package:verifin/app/veri_fin_scope.dart';
 import 'package:verifin/local_storage/local_storage.dart';
 import 'package:verifin/pages/budget_pages.dart';
-import 'package:verifin/pages/home_page.dart';
 import 'package:verifin/pages/transactions_pages.dart';
 
 import 'support/test_harness.dart';
@@ -251,7 +251,7 @@ void main() {
 
     testWidgets('首页预算卡排除标记支出', (tester) async {
       final controller = await pumpApp(tester);
-      controller.setDefaultMonthlyBudget(1000);
+      controller.setDefaultCategoryBudget('dining', 1000);
       final now = DateTime.now();
       controller
         ..addEntry(_expense(id: 'a', amount: 100, occurredAt: now))
@@ -260,16 +260,16 @@ void main() {
         );
       await tester.pumpAndSettle();
 
-      // 首页预算卡中心的「剩余」按预算口径：1000 - 100 = 900（不是 850）。
+      // 首页分类预算卡的「剩余」按预算口径：1000 - 100 = 900（不是 850）。
       await tester.scrollUntilVisible(
-        find.byType(BudgetPanel),
+        find.byType(HomeCategoryBudgetPanel),
         300,
         scrollable: firstVerticalScrollable(),
       );
       expect(
         find.descendant(
-          of: find.byType(BudgetPanel),
-          matching: find.text('900'),
+          of: find.byType(HomeCategoryBudgetPanel),
+          matching: find.text('剩余 900'),
         ),
         findsOneWidget,
       );

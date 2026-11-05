@@ -12,6 +12,7 @@ String entrySaveValidationMessage(
   return switch (code) {
     EntryValidationCode.staleDraft => l10n.entrySaveStaleDraft,
     EntryValidationCode.invalidAmounts => l10n.entrySaveValidationFailed,
+    EntryValidationCode.invalidExpenseAccount => l10n.expenseAccountInvalid,
     EntryValidationCode.invalidRefund => l10n.entrySaveInvalidRefund,
     EntryValidationCode.refundExceedsExpense =>
       l10n.entrySaveRefundExceedsExpense,

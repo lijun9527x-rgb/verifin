@@ -15,6 +15,7 @@ import '../app/veri_fin_scope.dart';
 import '../l10n/app_localizations.dart';
 import 'budget_pages.dart';
 import 'home_metrics_settings_page.dart';
+import 'home_category_budget_panel.dart';
 import 'panel_settings_page.dart';
 import 'recurring_page.dart';
 import 'transactions_pages.dart';
@@ -61,14 +62,11 @@ class HomePage extends StatelessWidget {
     final budgetWindow = controller.budgetWindow(budgetKeyMonth);
     final budgetEntries = entriesInWindow(entries, budgetWindow);
     // 预算面板按预算口径取数：排除标记「不计入预算」的交易。
-    final budgetExpense = budgetExpenseTotal(budgetEntries);
-    final monthlyBudget = controller.monthlyBudget(budgetKeyMonth);
     final categoryBudgetSnapshots = computeCategoryBudgetSnapshots(
       controller: controller,
       month: budgetKeyMonth,
       monthEntries: budgetEntries,
     );
-    final categoryBudgetRisk = topCategoryBudgetRisk(categoryBudgetSnapshots);
     final panelIds = controller.enabledPanelIds(PanelPageKind.home);
     final recurringMissingByRule = controller.dueRecurringMissingRates(now);
     final recurringMissingCodes =
@@ -145,21 +143,9 @@ class HomePage extends StatelessWidget {
             ),
           );
         case 'budget':
-          return BudgetPanel(
+          return HomeCategoryBudgetPanel(
             month: budgetKeyMonth,
-            window: budgetWindow,
-            expense: budgetExpense,
-            budget: monthlyBudget,
-            categoryRisk: categoryBudgetRisk,
-            currencyCode: controller.activeBook.baseCurrencyCode,
-            onTap: () {
-              Navigator.of(context).push<void>(
-                MaterialPageRoute<void>(
-                  builder: (context) =>
-                      BudgetOverviewPage(initialMonth: budgetKeyMonth),
-                ),
-              );
-            },
+            snapshots: categoryBudgetSnapshots,
           );
         case 'calendar':
           return CalendarPreview(

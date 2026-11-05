@@ -22,6 +22,7 @@ import '../app/series_math.dart';
 import '../app/veri_fin_scope.dart';
 import '../l10n/app_localizations.dart';
 import 'credit_repayment_page.dart';
+import 'account_asset_class_field.dart';
 import 'entry_detail_page.dart';
 import 'sheets.dart';
 import 'transactions_pages.dart';
@@ -330,6 +331,15 @@ class _AccountDetailPageState extends State<AccountDetailPage> {
                 VeriCard(
                   child: Column(
                     children: <Widget>[
+                      AccountAssetClassField(
+                        value: currentAccount.assetClass,
+                        onChanged: (value) => setState(
+                          () => _draftAccount = _draftAccount.copyWith(
+                            assetClass: value,
+                          ),
+                        ),
+                      ),
+                      const Divider(height: 1),
                       AnchoredMenuChoice<AccountType>(
                         key: const Key('account_detail_type_choice'),
                         values: AccountType.values,

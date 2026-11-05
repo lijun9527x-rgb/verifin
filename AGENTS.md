@@ -45,7 +45,7 @@ third_party/                  # 本地 vendor 源码（jdenticon_dart、liquid_g
 ### 状态与数据流
 
 - 应用权威状态集中在 `VeriFinController`（`ChangeNotifier`），经 `VeriFinScope`（`InheritedNotifier`）注入；不使用 Provider、Riverpod 或 Bloc。
-- Controller 物理拆为 `veri_fin_controller.dart`、`veri_fin_controller_state.dart`、`veri_fin_controller_ops.dart`；`VeriFinController.create()` 是生产异步创建入口。
+- Controller 物理拆为 `veri_fin_controller.dart`、`veri_fin_controller_state.dart`、`veri_fin_controller_ops.dart`，月度资产 API 位于同库扩展 `veri_fin_controller_assets.dart`；`VeriFinController.create()` 是生产异步创建入口。
 - UI 只调用 Controller 的公共读取/操作 API，不直接访问 repository、SQLite 或 KV；Controller 内部再经 `_persistX` 等路径持久化。
 - 账本、交易、账户、分组、分类、标签、附件、周期规则和预算等核心数据只认 SQLite。Controller 的内存集合是运行时读取源，不存在 KV 回退。
 - `LedgerRepository.saveX` 的对外语义是“落库后该表内容等于传入集合”。生产实现把“读取行快照、计算 `_incrementalReplace` 差分、事务写入、更新快照”整体串行化；单次失败不得阻塞后续写。附件表只存元数据，但**所有写路径（含 `replaceAllLedgerData` 整账本重建）都必须保留未迁移行的 `data_url`**，否则会静默丢掉用户还没转换的图片。导入、恢复、重置、删账本及跨表删除走 `replaceAllLedgerData` 原子整替；显式删除命令落库成功后才替换 Controller 内存。
@@ -239,6 +239,9 @@ dart run scripts/widget_previews.dart
 - 退款是关联原支出的独立条目；只有已到账退款影响余额和净额，原支出的 `refundedBaseAmount` 是已到账退款 `baseAmount` 之和的派生缓存。修改退款逻辑前必须阅读 `docs/dev/refund.md` 和 `docs/dev/multi-currency.md` 并以当前代码/测试为准。
 - 自定义预算周期只改变预算体系口径，统计报表仍按自然月。默认预算使用哨兵键，单月覆盖优先于默认值。
 - 「不计入预算」标记（借款、垫付等）只脱离**预算**口径。预算取数一律走 `ledger_math.dart` 的 `budgetExpenseTotal` / `countsTowardBudget`（预算总览、首页与看板预算卡、按日预算、预算趋势、桌面小组件预算、AI `budgetStatus`）；收支统计、账户余额、报表与分类统计仍走 `sumByType` / `signedAmount`，**不读该标记**。新增预算取数不要在调用点手写过滤条件。
+
+- 月度资产快照按账本和月份保存于 SQLite `asset_month_snapshots`；编辑冻结记录不得改写交易或账户余额。银行卡/平台复用 `AccountGroup`，资产性质用 `Account.assetClass`，不可与账户能力类型混用。参见 `docs/dev/monthly-assets.md`。
+- 新支出统一应用指定账户（`defaultAccountIds`）；历史编辑、收入、转账、退款与系统余额调整不重定向。首页预算面板展示各分类预算，总预算仍在预算总览中管理。
 
 ## Never 规则
 

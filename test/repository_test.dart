@@ -870,18 +870,25 @@ void main() {
     });
     await v9.close();
 
-    final db = await AppDatabase.open(factory: databaseFactoryFfi, path: path);
+    final db = await databaseFactoryFfi.openDatabase(
+      path,
+      options: OpenDatabaseOptions(
+        version: 10,
+        onUpgrade: (db, oldVersion, newVersion) =>
+            AppDatabase.migrations[10]!(db),
+      ),
+    );
     // 重复「餐饮」已合并为一条。
-    final cats = await db.db.rawQuery(
+    final cats = await db.rawQuery(
       "SELECT id FROM categories WHERE label='餐饮' AND type='expense'",
     );
     expect(cats, hasLength(1));
     final keptId = cats.single['id'] as String;
     // 两条交易都改指向保留者。
-    final entries = await db.db.rawQuery('SELECT category_id FROM entries');
+    final entries = await db.rawQuery('SELECT category_id FROM entries');
     expect(entries.every((r) => r['category_id'] == keptId), isTrue);
     // 唯一索引已建立。
-    final index = await db.db.rawQuery(
+    final index = await db.rawQuery(
       "SELECT name FROM sqlite_master WHERE type='index' "
       "AND name='idx_categories_unique'",
     );

@@ -114,3 +114,9 @@ Veri Fin 关键技术选型与理由。变更相关实现时同步更新本表�
 - **完整卡号与后四位**：`cardNumber`（完整，选填）、`cardLast4`（后四位）、`cardLast4Follows`（跟随开关 bool）三者都**持久化**（落库 + 进备份）。编辑页「后四位跟随卡号」开关（受控组件 `CardNumberFields`，经 `follows`/`onFollowsChanged` 由调用方持久化）打开时后四位自动取完整卡号末四位（`cardLast4Of`），关闭可手填。**开关状态忠实存储、不靠反推**：不能从卡号与后四位反推用户选择，否则会把「用户显式关掉但后四位恰好=末四位」误判成打开。新账户默认 true；缺字段的旧备份/旧账户默认 false（保留其手填后四位、不因跟随空卡号冲成空）。列表/首页只显示后四位，详情页展示完整卡号并可复制。切换到不支持卡号的类型时清空 `cardNumber`/`cardLast4`。
 - **额度与本期账单**（纯函数在 `credit_card.dart`）：欠款 = 账户负余额绝对值（`usedCredit`）；可用 = 额度 − 已用（`availableCredit`）。「本期账单」= 当前账单周期（`currentBillingCycle`，上一账单日次日至下一账单日）内本账户支出净额（`billingCycleExpense`），与「当前欠款」是两个互不矛盾的口径（还款是转账不计入本期账单）。**不做**「已出账单未还 vs 未出账单」精确拆分（需跟踪每笔还款销掉哪笔消费的重模型）、分期、年费自动记账。
 - **还款**（`CreditRepaymentPage`）：本质是一笔「扣款账户 → 本账户」的转账（`EntryType.transfer`），使欠款减少、不计入收支统计；扣款账户可空串表示「无账户（代还）」。切换到不支持信用的类型时清空 `creditLimit`/`statementDay`/`dueDay`。**转账都带一个「转账」分类**（默认「转出」`transfer_out`），不留空 `categoryId`——App 内记账（`_save` 归一化到 `categoriesForType(transfer).first`）、还款、导入（`plan_builder`）口径一致：空 `categoryId` 会被交易列表按 `categoryByIdFrom` 回退成「已删除分类」占位、也不计入分类管理的转账分类下。载入时 `_healCategoryData` 会把空分类的转账补齐。
+
+## 月度资产与分类预算
+
+资产快照、账户资产类别及统一支出账户的口径见 [monthly-assets.md](monthly-assets.md)。SQLite v20 新增 `accounts.asset_class` 和 `asset_month_snapshots`；快照保留当月的名称、分类、原币余额及汇率，不随当前账户变动而回算。首页 `budget` 面板使用分类预算列表，总预算继续由预算总览管理。
+
+备份范围补充：账户 `assetClass`、`assetSnapshots` 全部进入备份；`defaultAccountIds` 沿用现有导出/导入逻辑，作为按账本指定的统一支出账户恢复。旧备份缺分类时回落 `other`，缺快照时恢复为空，不生成历史估值。

@@ -7,6 +7,15 @@ import 'package:verifin/data/ledger_repository.dart';
 /// 避免与 testWidgets 的 fake-async 冲突；同一实例在多个控制器间共享即模拟重启后
 /// 从同一存储重新载入。
 class InMemoryLedgerRepository implements LedgerRepository {
+  List<AssetMonthSnapshot> _assetSnapshots = [];
+  @override
+  Future<List<AssetMonthSnapshot>> loadAssetSnapshots() async =>
+      List.of(_assetSnapshots);
+  @override
+  Future<void> saveAssetSnapshots(List<AssetMonthSnapshot> snapshots) async {
+    _assetSnapshots = List.of(snapshots);
+  }
+
   List<LedgerEntry> _entries = <LedgerEntry>[];
   List<LedgerBook> _books = <LedgerBook>[];
   List<Account> _accounts = <Account>[];
@@ -176,6 +185,7 @@ class InMemoryLedgerRepository implements LedgerRepository {
 
   @override
   Future<void> replaceAllLedgerData(LedgerDataSnapshot snapshot) async {
+    _assetSnapshots = List.of(snapshot.assetSnapshots);
     _books = List<LedgerBook>.of(snapshot.books);
     _accounts = List<Account>.of(snapshot.accounts);
     _groups = List<AccountGroup>.of(snapshot.accountGroups);

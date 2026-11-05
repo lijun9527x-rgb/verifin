@@ -329,7 +329,7 @@ void main() {
     );
   });
 
-  testWidgets('自动识别开启时，账户跟随该分类上次用过的账户', (tester) async {
+  testWidgets('指定支出账户优先于分类历史账户', (tester) async {
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = const Size(800, 1600);
     addTearDown(tester.view.reset);
@@ -339,10 +339,9 @@ void main() {
     final bookId = controller.activeBook.id;
     controller
       ..addAccount(_account('cash', bookId, '现金'))
-      ..addAccount(_account('wechat', bookId, '微信'))
-      // 账本默认账户是现金，但交通分类的历史习惯是微信。
-      ..setDefaultAccountId('cash');
+      ..addAccount(_account('wechat', bookId, '微信'));
     _seedTransportHistory(controller, bookId, accountId: 'wechat');
+    controller.setDefaultAccountId('cash');
 
     await pumpApp(tester, store);
     await tapBottomTab(tester, 0);
@@ -355,9 +354,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      find.textContaining('微信'),
+      find.textContaining('现金'),
       findsWidgets,
-      reason: '该分类上次用微信付，应预选微信而不是账本默认的现金',
+      reason: '统一支出账户不应被分类历史习惯覆盖',
     );
   });
 

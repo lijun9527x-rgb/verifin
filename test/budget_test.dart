@@ -1,3 +1,4 @@
+import 'package:verifin/pages/home_category_budget_panel.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:verifin/app/chart_painters.dart';
@@ -5,7 +6,6 @@ import 'package:verifin/app/models.dart';
 import 'package:verifin/app/veri_fin_scope.dart';
 import 'package:verifin/local_storage/local_storage.dart';
 import 'package:verifin/pages/budget_pages.dart';
-import 'package:verifin/pages/home_page.dart';
 
 import 'support/test_harness.dart';
 
@@ -51,11 +51,11 @@ void main() {
     final controller = await pumpApp(tester);
 
     await tester.scrollUntilVisible(
-      find.byType(BudgetPanel),
+      find.byType(HomeCategoryBudgetPanel),
       300,
       scrollable: firstVerticalScrollable(),
     );
-    await tester.tap(find.byType(BudgetPanel));
+    await tester.tap(find.byType(HomeCategoryBudgetPanel));
     await tester.pumpAndSettle();
 
     // 总览页标题为「预算」，只读；配置走右上角设置齿轮。
@@ -104,12 +104,12 @@ void main() {
     expect(controller.defaultMonthlyBudget, 2400);
     expect(controller.defaultCategoryBudget('dining'), 600);
 
-    // 返回总览再回主页：BudgetPanel 应显示沿用默认的「预算 2400」。
+    // 返回总览再回主页：首页应展示餐饮分类预算 600，而不是总预算 2400。
     Navigator.of(tester.element(find.byType(BudgetOverviewPage))).pop();
     await tester.pumpAndSettle();
 
-    expect(find.byType(BudgetPanel), findsOneWidget);
-    expect(find.text('预算 2400'), findsOneWidget);
+    expect(find.byType(HomeCategoryBudgetPanel), findsOneWidget);
+    expect(find.text('600'), findsOneWidget);
   });
 
   testWidgets('category budget list renders as a collapsible tree', (
@@ -128,11 +128,11 @@ void main() {
 
     await pumpApp(tester, store);
     await tester.scrollUntilVisible(
-      find.byType(BudgetPanel),
+      find.byType(HomeCategoryBudgetPanel),
       300,
       scrollable: firstVerticalScrollable(),
     );
-    tester.widget<BudgetPanel>(find.byType(BudgetPanel)).onTap();
+    await tester.tap(find.byType(HomeCategoryBudgetPanel));
     await tester.pumpAndSettle();
 
     // 分类树默认折叠：父分类「餐饮」可见，子分类「午餐」隐藏。
@@ -287,13 +287,13 @@ void main() {
 
     await pumpApp(tester, store);
     await tester.scrollUntilVisible(
-      find.byType(BudgetPanel),
+      find.byType(HomeCategoryBudgetPanel),
       300,
       scrollable: firstVerticalScrollable(),
     );
 
-    expect(find.text('餐饮超出 25'), findsOneWidget);
-    tester.widget<BudgetPanel>(find.byType(BudgetPanel)).onTap();
+    expect(find.text('剩余 -25'), findsOneWidget);
+    await tester.tap(find.byType(HomeCategoryBudgetPanel));
     await tester.pumpAndSettle();
 
     // 总览页标题为「预算」。
@@ -359,18 +359,22 @@ void main() {
         ),
       )
       ..setMonthlyBudget(now, 100)
+      ..setCategoryBudget(now, 'dining', 100)
       ..dispose();
 
     await pumpApp(tester, store);
     await tester.scrollUntilVisible(
-      find.byType(BudgetPanel),
+      find.byType(HomeCategoryBudgetPanel),
       300,
       scrollable: firstVerticalScrollable(),
     );
 
     // 支出 150、预算 100：剩余应显示 -50（负数），而不再夹到 0。
     expect(
-      find.descendant(of: find.byType(BudgetPanel), matching: find.text('-50')),
+      find.descendant(
+        of: find.byType(HomeCategoryBudgetPanel),
+        matching: find.text('剩余 -50'),
+      ),
       findsOneWidget,
     );
   });

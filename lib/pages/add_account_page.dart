@@ -13,6 +13,7 @@ class _AddAccountPageState extends State<AddAccountPage> {
   final _cardLast4Controller = TextEditingController();
   final _cardNumberController = TextEditingController();
   final _noteController = TextEditingController();
+  AssetClass _assetClass = AssetClass.other;
   AccountType _type = AccountType.onlinePayment;
   String _iconCode = 'wallet';
   String _groupId = 'ungrouped';
@@ -106,6 +107,11 @@ class _AddAccountPageState extends State<AddAccountPage> {
                       icon: Icons.category_outlined,
                       onTap: openMenu,
                     ),
+                  ),
+                  const SizedBox(height: 10),
+                  AccountAssetClassField(
+                    value: _assetClass,
+                    onChanged: (value) => setState(() => _assetClass = value),
                   ),
                   const SizedBox(height: 10),
                   TextFormField(
@@ -330,6 +336,7 @@ class _AddAccountPageState extends State<AddAccountPage> {
     return !_saved &&
         (_nameController.text.trim().isNotEmpty ||
             balanceChanged ||
+            _assetClass != AssetClass.other ||
             _type != AccountType.onlinePayment ||
             _iconCode != 'wallet' ||
             _groupId != 'ungrouped' ||
@@ -424,6 +431,7 @@ class _AddAccountPageState extends State<AddAccountPage> {
         id: DateTime.now().microsecondsSinceEpoch.toString(),
         bookId: controller.activeBook.id,
         name: _nameController.text.trim(),
+        assetClass: _assetClass,
         type: _type,
         groupId: _groupId,
         initialBalance: _balance ?? 0,

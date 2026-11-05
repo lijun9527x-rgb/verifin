@@ -65,6 +65,32 @@ enum AccountType {
   }
 }
 
+/// 资产性质与账户能力分开；所属银行卡/平台复用 AccountGroup。
+enum AssetClass {
+  demandDeposit,
+  fixedDeposit,
+  bondFund,
+  equityFund,
+  foreignFixedDeposit,
+  foreignDemandDeposit,
+  other;
+
+  static AssetClass fromStorage(String? value) => AssetClass.values.firstWhere(
+    (item) => item.name == value,
+    orElse: () => AssetClass.other,
+  );
+
+  String label(AppLocalizations l10n) => switch (this) {
+    AssetClass.demandDeposit => l10n.assetClassDemand,
+    AssetClass.fixedDeposit => l10n.assetClassFixed,
+    AssetClass.bondFund => l10n.assetClassBond,
+    AssetClass.equityFund => l10n.assetClassEquity,
+    AssetClass.foreignFixedDeposit => l10n.assetClassForeignFixed,
+    AssetClass.foreignDemandDeposit => l10n.assetClassForeignDemand,
+    AssetClass.other => l10n.assetClassOther,
+  };
+}
+
 class Account {
   const Account({
     required this.id,
@@ -77,6 +103,7 @@ class Account {
     required this.note,
     required this.includeInAssets,
     required this.hidden,
+    this.assetClass = AssetClass.other,
     this.currencyCode = defaultCurrencyCode,
     this.cardLast4 = '',
     this.cardNumber = '',
@@ -96,6 +123,7 @@ class Account {
   final String note;
   final bool includeInAssets;
   final bool hidden;
+  final AssetClass assetClass;
   final String currencyCode;
   final String cardLast4;
 
@@ -128,6 +156,7 @@ class Account {
     String? note,
     bool? includeInAssets,
     bool? hidden,
+    AssetClass? assetClass,
     String? currencyCode,
     String? cardLast4,
     String? cardNumber,
@@ -150,6 +179,7 @@ class Account {
       note: note ?? this.note,
       includeInAssets: includeInAssets ?? this.includeInAssets,
       hidden: hidden ?? this.hidden,
+      assetClass: assetClass ?? this.assetClass,
       currencyCode: currencyCode ?? this.currencyCode,
       cardLast4: cardLast4 ?? this.cardLast4,
       cardNumber: cardNumber ?? this.cardNumber,
@@ -174,6 +204,7 @@ class Account {
       'note': note,
       'includeInAssets': includeInAssets,
       'hidden': hidden,
+      'assetClass': assetClass.name,
       'currencyCode': currencyCode,
       'cardLast4': cardLast4,
       'cardNumber': cardNumber,
@@ -196,6 +227,7 @@ class Account {
       note: json['note'] as String? ?? '',
       includeInAssets: json['includeInAssets'] as bool? ?? true,
       hidden: json['hidden'] as bool? ?? false,
+      assetClass: AssetClass.fromStorage(json['assetClass'] as String?),
       currencyCode: (json['currencyCode'] as String? ?? defaultCurrencyCode)
           .toUpperCase(),
       cardLast4: json['cardLast4'] as String? ?? '',

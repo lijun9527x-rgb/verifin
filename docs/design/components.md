@@ -245,3 +245,13 @@ Veri Fin 已有的**可复用 widget / 弹窗 helper / 对话框 / 纯函数**�
 - **改货币显示口径要补双向测试**：单币种 + 开关打开断言该处不出现单位（`find.textContaining('单位：')`），多币种账本断言单位仍在，见 `test/single_currency_unit_test.dart`；只测一侧会把收口做成隐藏过度。
 - 同一 UI 片段或逻辑在 **≥2 个文件**出现 → 立即抽共享件，变体用参数表达。
 - 删除/重命名可复用件 → 同步改本表与所有调用点。
+
+## 个人资产与分类预算
+
+| 名称 | 类型 | 位置 | 用途 |
+|---|---|---|---|
+| `AccountAssetClassField` | Widget | `pages/account_asset_class_field.dart` | 新建账户与账户详情共用的资产类别选择，复用 `AnchoredMenuChoice` / `SelectField` |
+| `HomeCategoryBudgetPanel` | Widget | `pages/home_category_budget_panel.dart` | 首页分类预算面板；复用预算快照和既有预算总览入口 |
+| `AssetMonthlyPage` / `AssetSnapshotEditorPage` | 页面 | `pages/asset_monthly_page.dart` | 窄屏两个月、宽屏三个月资产对照，按类别/银行卡/账户聚合、原币切换、核对与保存快照；月份和金额选择复用现有 helper |
+| `assetComparisonRows` / `validAssetSnapshot` | 纯函数 | `app/asset_snapshot_math.dart` | 按各月冻结信息聚合对照行，以及保存/备份恢复共用的金额与汇率校验 |
+| `AssetSnapshotOperations` | Controller API | `app/veri_fin_controller_assets.dart` | 读取、建立草稿及串行保存月度资产快照；页面不访问 SQLite |

@@ -23,6 +23,7 @@ class LedgerDataSnapshot {
     required this.categoryBudgets,
     required this.dailyBudgets,
     this.exchangeRates = const <ExchangeRate>[],
+    this.assetSnapshots = const <AssetMonthSnapshot>[],
   });
 
   final List<LedgerBook> books;
@@ -36,6 +37,7 @@ class LedgerDataSnapshot {
   final Map<String, double> monthlyBudgets;
   final Map<String, double> categoryBudgets;
   final Map<String, double> dailyBudgets;
+  final List<AssetMonthSnapshot> assetSnapshots;
   final List<ExchangeRate> exchangeRates;
 }
 
@@ -44,6 +46,9 @@ class LedgerDataSnapshot {
 ///
 /// 语义为「整表覆盖」：每次 saveX 以传入列表整体替换该类数据。
 abstract interface class LedgerRepository {
+  Future<List<AssetMonthSnapshot>> loadAssetSnapshots();
+  Future<void> saveAssetSnapshots(List<AssetMonthSnapshot> snapshots);
+
   Future<List<LedgerEntry>> loadEntries();
   Future<void> saveEntries(List<LedgerEntry> entries);
 
@@ -143,6 +148,37 @@ class SqliteLedgerRepository implements LedgerRepository {
   SqliteLedgerRepository(this._database);
 
   final AppDatabase _database;
+
+  static Map<String, Object?> _assetSnapshotToRow(AssetMonthSnapshot value) => {
+    'id': value.id,
+    'book_id': value.bookId,
+    'payload': jsonEncode(value.toJson()),
+  };
+
+  @override
+  Future<List<AssetMonthSnapshot>> loadAssetSnapshots() async {
+    final rows = await _db.query('asset_month_snapshots', orderBy: 'id');
+    return rows
+        .map(
+          (row) => AssetMonthSnapshot.fromJson(
+            Map<String, Object?>.from(
+              jsonDecode(row['payload'] as String) as Map,
+            ),
+          ),
+        )
+        .toList();
+  }
+
+  @override
+  Future<void> saveAssetSnapshots(List<AssetMonthSnapshot> snapshots) {
+    final rows = snapshots.map(_assetSnapshotToRow).toList();
+    return _enqueueWrite(
+      () => _db.transaction((txn) async {
+        await _replaceInTxn(txn, 'asset_month_snapshots', rows);
+      }),
+    );
+  }
+
   Database get _db => _database.db;
 
   /// 串行化本仓储的全部写入。sqflite 会串行执行底层事务，但行级差分快照在
@@ -601,6 +637,11 @@ class SqliteLedgerRepository implements LedgerRepository {
         await _replaceAttachmentsInTxn(
           txn,
           _indexed(snapshot.attachments, _attachmentToRow),
+        );
+        await _replaceInTxn(
+          txn,
+          'asset_month_snapshots',
+          snapshot.assetSnapshots.map(_assetSnapshotToRow),
         );
         await _replaceInTxn(txn, 'entries', snapshot.entries.map(_entryToRow));
         await _replaceInTxn(
@@ -1105,6 +1146,7 @@ class SqliteLedgerRepository implements LedgerRepository {
         'type': a.type.name,
         'group_id': a.groupId,
         'initial_balance': a.initialBalance,
+        'asset_class': a.assetClass.name,
         'currency_code': a.currencyCode,
         'icon_code': a.iconCode,
         'note': a.note,
@@ -1126,6 +1168,7 @@ class SqliteLedgerRepository implements LedgerRepository {
     type: AccountType.fromStorage(row['type'] as String?),
     groupId: row['group_id'] as String?,
     initialBalance: (row['initial_balance'] as num).toDouble(),
+    assetClass: AssetClass.fromStorage(row['asset_class'] as String?),
     currencyCode: row['currency_code'] as String? ?? defaultCurrencyCode,
     iconCode: normalizeAccountIconCode(row['icon_code'] as String?),
     note: row['note'] as String? ?? '',

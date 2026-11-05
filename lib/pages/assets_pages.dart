@@ -23,6 +23,8 @@ import '../app/veri_fin_scope.dart';
 import '../l10n/app_localizations.dart';
 import 'sheets.dart';
 import 'account_detail_page.dart';
+import 'account_asset_class_field.dart';
+import 'asset_monthly_page.dart';
 import 'currency_rates_page.dart';
 
 part 'account_group_pages.dart';
@@ -185,6 +187,22 @@ class _AssetsPageState extends State<AssetsPage> {
               icon: Icons.add,
               tooltip: AppLocalizations.of(context).assetsActions,
               entries: _assetActionMenuEntries(context),
+            ),
+          ),
+          const SizedBox(height: 10),
+          VeriCard(
+            key: const Key('asset_monthly_entry'),
+            onTap: () => Navigator.of(context).push<void>(
+              MaterialPageRoute(builder: (_) => const AssetMonthlyPage()),
+            ),
+            child: ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.table_chart_outlined),
+              title: Text(AppLocalizations.of(context).assetMonthlyTitle),
+              subtitle: Text(
+                AppLocalizations.of(context).assetMonthlyDescription,
+              ),
+              trailing: const Icon(Icons.chevron_right),
             ),
           ),
           const SizedBox(height: 10),

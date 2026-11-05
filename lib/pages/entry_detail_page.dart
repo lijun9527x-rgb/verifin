@@ -210,6 +210,16 @@ class _EntryDetailPageState extends State<EntryDetailPage> {
     if (!_moneyInitialized) {
       _initializeCurrencyAmounts();
     } else {
+      final controller = VeriFinScope.of(context);
+      if (_fixedExpenseAccount && _accountId != controller.defaultAccountId) {
+        _syncExpenseAccount(controller);
+        _refreshCurrencyAmounts(
+          controller,
+          _availableAccounts(controller),
+          forceAccount: true,
+          forceBase: true,
+        );
+      }
       _resolveNewlyAvailableAccount();
     }
     // 开屏（金额已确定、备注为空）先按金额习惯识别一次。
@@ -262,6 +272,17 @@ class _EntryDetailPageState extends State<EntryDetailPage> {
     return accounts.where((account) => account.id == id).firstOrNull;
   }
 
+  bool get _fixedExpenseAccount =>
+      widget.draftEntry == null &&
+      _type == EntryType.expense &&
+      VeriFinScope.of(context).defaultAccountId != null;
+
+  void _syncExpenseAccount(VeriFinController controller) {
+    if (!_fixedExpenseAccount) return;
+    _accountId = controller.defaultAccountId!;
+    _noAccount = false;
+  }
+
   void _initializeCurrencyAmounts() {
     final controller = VeriFinScope.of(context);
     final accounts = _availableAccounts(controller);
@@ -270,6 +291,7 @@ class _EntryDetailPageState extends State<EntryDetailPage> {
         !accounts.any((account) => account.id == _accountId)) {
       _accountId = accounts.first.id;
     }
+    _syncExpenseAccount(controller);
     _normalizeTransferAccounts(accounts);
     _currencyCode ??=
         _accountFor(accounts, _accountId)?.currencyCode ??
@@ -335,6 +357,7 @@ class _EntryDetailPageState extends State<EntryDetailPage> {
   }) {
     _missingRateCodes = <String>{};
     final baseCode = controller.activeBook.baseCurrencyCode;
+    _syncExpenseAccount(controller);
     final account = _noAccount ? null : _accountFor(accounts, _accountId);
     final toAccount = _accountFor(accounts, _toAccountId);
 
@@ -549,6 +572,7 @@ class _EntryDetailPageState extends State<EntryDetailPage> {
       setState(() {
         if (!_typeTouched && suggestion.type != null) {
           _type = suggestion.type!;
+          _syncExpenseAccount(controller);
         }
         if (!_categoryTouched && suggestion.categoryId != null) {
           _categoryId = suggestion.categoryId!;
@@ -575,7 +599,10 @@ class _EntryDetailPageState extends State<EntryDetailPage> {
   /// 选了「无账户」或当前是转账（两端账户都是显式选择）时都不覆盖。
   /// 关闭自动识别时保持原行为——只用账本默认账户。
   void _applyCategoryAccountSuggestion(VeriFinController controller) {
-    if (!_autoSuggestEnabled || _accountTouched || _noAccount) {
+    if (_fixedExpenseAccount ||
+        !_autoSuggestEnabled ||
+        _accountTouched ||
+        _noAccount) {
       return;
     }
     if (_type == EntryType.transfer) {
@@ -744,6 +771,7 @@ class _EntryDetailPageState extends State<EntryDetailPage> {
                       onChanged: (type) {
                         setState(() {
                           _type = type;
+                          _syncExpenseAccount(controller);
                           _typeTouched = true;
                           // 同上：空列表时留空，不取 `.first` 以免抛异常白屏。
                           final next = _categoriesForType(controller, _type);
@@ -871,7 +899,12 @@ class _EntryDetailPageState extends State<EntryDetailPage> {
                     ] else if (hasAccounts)
                       SelectField(
                         key: const Key('account_dropdown'),
-                        label: AppLocalizations.of(context).accountLabel,
+                        label: _fixedExpenseAccount
+                            ? AppLocalizations.of(context).defaultAccountTitle
+                            : AppLocalizations.of(context).accountLabel,
+                        suffixIcon: _fixedExpenseAccount
+                            ? const Icon(Icons.lock_outline)
+                            : null,
                         value: _noAccount
                             ? AppLocalizations.of(context).noAccountLabel
                             : '${accountById(accounts, _accountId).name} (${formatUserMoney(controller.accountBalance(accountById(accounts, _accountId)), accountById(accounts, _accountId).currencyCode)})',
@@ -887,7 +920,9 @@ class _EntryDetailPageState extends State<EntryDetailPage> {
                                 ).iconCode,
                                 size: 26,
                               ),
-                        onTap: () => _pickAccount(accounts),
+                        onTap: _fixedExpenseAccount
+                            ? null
+                            : () => _pickAccount(accounts),
                       )
                     else
                       EmptyState(
@@ -1541,6 +1576,7 @@ class _EntryDetailPageState extends State<EntryDetailPage> {
   }
 
   Future<void> _pickAccount(List<Account> accounts) async {
+    if (_fixedExpenseAccount) return;
     final isTransfer = _type == EntryType.transfer;
     final selected = await showAccountPickerSheet(
       context: context,

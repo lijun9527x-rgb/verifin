@@ -192,6 +192,8 @@ void main() {
       expect(account.statementDay, isNull);
       expect(account.dueDay, isNull);
       expect(account.currencyCode, 'CNY');
+      expect(account.assetClass, AssetClass.other);
+      expect(await repo.loadAssetSnapshots(), isEmpty);
       expect(account.iconCode, 'asset:payment_006');
 
       final book = (await repo.loadBooks()).single;
@@ -371,25 +373,31 @@ void main() {
 
   test('v15 账户历史图标 code 升级后写回当前 SVG code', () async {
     final path = '${tempDir.path}/v15_account_icons.db';
-    final app = await AppDatabase.open(factory: databaseFactoryFfi, path: path);
-    final repo = SqliteLedgerRepository(app);
-    await repo.saveAccounts(<Account>[
-      for (final legacy in const <String>['alipay', 'wechat', 'folder'])
-        Account(
-          id: 'legacy-$legacy',
-          bookId: 'default',
-          name: legacy,
-          type: AccountType.onlinePayment,
-          groupId: null,
-          initialBalance: 0,
-          iconCode: legacy,
-          note: '',
-          includeInAssets: true,
-          hidden: false,
-        ),
-    ]);
-    await app.db.execute('PRAGMA user_version = 15');
-    await app.close();
+    final raw = await databaseFactoryFfi.openDatabase(path);
+    for (final statement in _schemaV1) {
+      await raw.execute(statement);
+    }
+    for (var version = 2; version <= 15; version++) {
+      await AppDatabase.migrations[version]!(raw);
+    }
+    var order = 0;
+    for (final legacy in const ['alipay', 'wechat', 'folder']) {
+      await raw.insert('accounts', {
+        'id': 'legacy-$legacy',
+        'book_id': 'default',
+        'name': legacy,
+        'type': 'onlinePayment',
+        'initial_balance': 0,
+        'icon_code': legacy,
+        'note': '',
+        'include_in_assets': 1,
+        'hidden': 0,
+        'card_last4': '',
+        'sort_order': order++,
+      });
+    }
+    await raw.execute('PRAGMA user_version = 15');
+    await raw.close();
 
     final upgraded = await AppDatabase.open(
       factory: databaseFactoryFfi,

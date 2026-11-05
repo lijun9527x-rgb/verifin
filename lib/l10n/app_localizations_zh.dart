@@ -540,10 +540,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get panelRecentDesc => '展示最近 5 条交易记录';
 
   @override
-  String get panelBudgetLabel => '月度预算';
+  String get panelBudgetLabel => '分类预算';
 
   @override
-  String get panelBudgetDesc => '本月预算进度与分类超支提醒';
+  String get panelBudgetDesc => '各分类预算、已支出与剩余额度';
 
   @override
   String get panelCalendarDesc => '按日历查看每天的收支情况';
@@ -3052,16 +3052,16 @@ class AppLocalizationsZh extends AppLocalizations {
   String get fabModeManualTapAiLongPress => '点击手动 · 长按 AI';
 
   @override
-  String get defaultAccountTitle => '默认账户';
+  String get defaultAccountTitle => '统一支出账户';
 
   @override
-  String get defaultAccountPickerTitle => '默认付款账户';
+  String get defaultAccountPickerTitle => '选择日常支出扣款账户';
 
   @override
   String get defaultAccountNone => '无默认账户';
 
   @override
-  String get defaultAccountNoneHint => '记账时不预选账户';
+  String get defaultAccountNoneHint => '未指定时，记账时自行选择账户';
 
   @override
   String get setAsDefaultAccount => '设为默认账户';
@@ -4956,4 +4956,94 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get widgetConfigurationFailed => '无法读取此小组件，请返回桌面后重试。';
+
+  @override
+  String get assetClassLabel => '资产类别';
+
+  @override
+  String get assetClassDemand => '活期存款';
+
+  @override
+  String get assetClassFixed => '定期存款';
+
+  @override
+  String get assetClassBond => '债券基金';
+
+  @override
+  String get assetClassEquity => '股票类基金';
+
+  @override
+  String get assetClassForeignFixed => '外币定期';
+
+  @override
+  String get assetClassForeignDemand => '外币活期';
+
+  @override
+  String get assetClassOther => '其他资产';
+
+  @override
+  String get assetMonthlyTitle => '月度资产对照';
+
+  @override
+  String get assetMonthlyDescription => '按账户记录余额，按资产类别或银行卡汇总';
+
+  @override
+  String get assetViewCategory => '按资产类别';
+
+  @override
+  String get assetViewBank => '按银行卡';
+
+  @override
+  String get assetViewAccount => '账户明细';
+
+  @override
+  String get assetSnapshotEdit => '核对余额';
+
+  @override
+  String get assetSnapshotSave => '保存月度快照';
+
+  @override
+  String get assetSnapshotHelp => '填写各账户原币余额，基金填写市值。保存后冻结当时余额与汇率，不改写日常流水。';
+
+  @override
+  String get assetSnapshotOverwrite => '该月已有快照，保存将替换该月记录，其他月份不受影响。';
+
+  @override
+  String get assetSnapshotSaved => '月度资产快照已保存';
+
+  @override
+  String get assetSnapshotMissing => '未保存快照';
+
+  @override
+  String get assetSnapshotDraft => '当前草稿';
+
+  @override
+  String get assetSnapshotEmpty => '添加账户后核对每月资产余额';
+
+  @override
+  String get assetSnapshotNative => '账户明细显示原币';
+
+  @override
+  String get assetSnapshotChange => '较上月变化';
+
+  @override
+  String get assetSnapshotGroup => '账户 / 分组';
+
+  @override
+  String get assetSnapshotTotal => '净资产合计';
+
+  @override
+  String get assetSnapshotRates => '汇总使用快照保存时的本位币估值；缺汇率时不展示不完整合计。';
+
+  @override
+  String get homeCategoryBudgetEmpty => '先设置分类默认预算，每月自动沿用';
+
+  @override
+  String get expenseAccountFixed => '日常支出统一使用指定账户，历史支出保留原账户。';
+
+  @override
+  String get assetSnapshotSavedState => '已保存';
+
+  @override
+  String get expenseAccountInvalid => '指定支出账户不可用或缺少换算汇率，请检查账户设置与汇率。';
 }

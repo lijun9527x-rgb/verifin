@@ -126,3 +126,7 @@
 - **偏好类 KV 剥离为独立 notifier**：可修掉「偏好改动触发全树重建」的性能问题，但需把 ~15 个偏好字段搬出 controller、新建独立 scope，**每个读取点都要改**，漏一个即运行时错误；而该性能问题属「规模变大才疼」。判定为中期项，规模/团队变大或出现掉帧后再单独做。**约定：新增偏好一律照主题/语言的独立 `ValueNotifier` 先例做**（`themePreferenceListenable`/`localePreferenceListenable`），不再往全树广播里加。
 - **BackupCoordinator 窄接口化**：其静态方法直接接收整个 `VeriFinController`、读六七个成员，是全项目唯一「吃整个 controller」的服务（notification_scheduler、ai_client 都是窄注入）。当前可测（`backup_coordinator_test.dart`）、行为正确，改注入面收益有限，暂不动。触发阈值：新增第二个类似协调器、或备份决策逻辑需要独立轻量单测时，改为窄参数注入（settings、webdavConfig、`exportJson` 回调、logger）。**勿再复制此模式。**
 - **`Clock` 依赖注入**：ID 碰撞隐患已通过统一的 `_generateId`（微秒时间戳 + 单调序号）根治；批量/幂等路径（导入计数器、周期规则确定性 id）本就安全。剩余的「时间可控测试」需求已由 `applyDueRecurring(now)` 这类传参覆盖，全量注入 Clock 收益有限，暂缓。
+
+### L15 · 月度资产需要主动核对保存
+
+月度资产为手动核对并保存的快照，不自动补齐历史月份或联网估值。未保存历史月显示缺失，当前月可展示流水推导草稿。需要完整历史对比时，应按银行账单/基金市值录入并保存对应月份，见 [monthly-assets.md](monthly-assets.md)。

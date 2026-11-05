@@ -18,7 +18,7 @@ class AppDatabase {
   final Database db;
 
   static const String defaultDatabaseName = 'verifin.db';
-  static const int schemaVersion = 19;
+  static const int schemaVersion = 20;
 
   /// 打开（或创建）数据库。测试通过 [factory]/[path] 注入 ffi 与内存路径；
   /// 真实平台留空则由 [resolveDatabaseFactory]/[resolveDatabasePath] 决定。
@@ -76,6 +76,7 @@ class AppDatabase {
         17: _migrateToV17,
         18: _migrateToV18,
         19: _migrateToV19,
+        20: _migrateToV20,
       };
 
   /// 只读暴露迁移注册表，供迁移矩阵测试把库推进到任意中间版本。生产代码勿用。
@@ -97,6 +98,21 @@ class AppDatabase {
       }
       await migrate(db);
     }
+  }
+
+  static const String _assetSnapshotsTable = '''
+    CREATE TABLE asset_month_snapshots (
+      id TEXT PRIMARY KEY,
+      book_id TEXT NOT NULL,
+      payload TEXT NOT NULL
+    )
+  ''';
+
+  static Future<void> _migrateToV20(Database db) async {
+    await db.execute(
+      "ALTER TABLE accounts ADD COLUMN asset_class TEXT NOT NULL DEFAULT 'other'",
+    );
+    await db.execute(_assetSnapshotsTable);
   }
 
   /// v1 → v2：分类支持多级树形结构，新增可空的 parent_id 列（顶级为 NULL）。
@@ -962,10 +978,12 @@ class AppDatabase {
       credit_limit REAL,
       sort_order INTEGER NOT NULL,
       statement_day INTEGER,
-      due_day INTEGER
+      due_day INTEGER,
+      asset_class TEXT NOT NULL DEFAULT 'other'
     )
     ''',
     'CREATE INDEX idx_accounts_book ON accounts (book_id)',
+    _assetSnapshotsTable,
     _accountGroupsTableCurrent,
     _accountGroupsBookIndex,
     '''

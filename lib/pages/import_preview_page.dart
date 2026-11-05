@@ -567,6 +567,16 @@ class _ImportPreviewPageState extends State<ImportPreviewPage> {
                 child: ListView(
                   padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
                   children: <Widget>[
+                    if (controller.defaultAccountId != null &&
+                        _rootEntries.any(
+                          (entry) => entry.type == EntryType.expense,
+                        ))
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: Text(
+                          '${l10n.defaultAccountTitle}: ${controller.accounts.firstWhere((account) => account.id == controller.defaultAccountId).name}\n${l10n.expenseAccountFixed}',
+                        ),
+                      ),
                     // 有交易或有跳过行时才显示交易汇总卡；纯账户导入时略去。
                     if (_rootEntries.isNotEmpty || widget.plan.errorCount > 0)
                       _SummaryCard(

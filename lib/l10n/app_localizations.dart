@@ -1139,13 +1139,13 @@ abstract class AppLocalizations {
   /// No description provided for @panelBudgetLabel.
   ///
   /// In zh, this message translates to:
-  /// **'月度预算'**
+  /// **'分类预算'**
   String get panelBudgetLabel;
 
   /// No description provided for @panelBudgetDesc.
   ///
   /// In zh, this message translates to:
-  /// **'本月预算进度与分类超支提醒'**
+  /// **'各分类预算、已支出与剩余额度'**
   String get panelBudgetDesc;
 
   /// No description provided for @panelCalendarDesc.
@@ -5597,13 +5597,13 @@ abstract class AppLocalizations {
   /// No description provided for @defaultAccountTitle.
   ///
   /// In zh, this message translates to:
-  /// **'默认账户'**
+  /// **'统一支出账户'**
   String get defaultAccountTitle;
 
   /// No description provided for @defaultAccountPickerTitle.
   ///
   /// In zh, this message translates to:
-  /// **'默认付款账户'**
+  /// **'选择日常支出扣款账户'**
   String get defaultAccountPickerTitle;
 
   /// No description provided for @defaultAccountNone.
@@ -5615,7 +5615,7 @@ abstract class AppLocalizations {
   /// No description provided for @defaultAccountNoneHint.
   ///
   /// In zh, this message translates to:
-  /// **'记账时不预选账户'**
+  /// **'未指定时，记账时自行选择账户'**
   String get defaultAccountNoneHint;
 
   /// No description provided for @setAsDefaultAccount.
@@ -8889,6 +8889,186 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'无法读取此小组件，请返回桌面后重试。'**
   String get widgetConfigurationFailed;
+
+  /// No description provided for @assetClassLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'资产类别'**
+  String get assetClassLabel;
+
+  /// No description provided for @assetClassDemand.
+  ///
+  /// In zh, this message translates to:
+  /// **'活期存款'**
+  String get assetClassDemand;
+
+  /// No description provided for @assetClassFixed.
+  ///
+  /// In zh, this message translates to:
+  /// **'定期存款'**
+  String get assetClassFixed;
+
+  /// No description provided for @assetClassBond.
+  ///
+  /// In zh, this message translates to:
+  /// **'债券基金'**
+  String get assetClassBond;
+
+  /// No description provided for @assetClassEquity.
+  ///
+  /// In zh, this message translates to:
+  /// **'股票类基金'**
+  String get assetClassEquity;
+
+  /// No description provided for @assetClassForeignFixed.
+  ///
+  /// In zh, this message translates to:
+  /// **'外币定期'**
+  String get assetClassForeignFixed;
+
+  /// No description provided for @assetClassForeignDemand.
+  ///
+  /// In zh, this message translates to:
+  /// **'外币活期'**
+  String get assetClassForeignDemand;
+
+  /// No description provided for @assetClassOther.
+  ///
+  /// In zh, this message translates to:
+  /// **'其他资产'**
+  String get assetClassOther;
+
+  /// No description provided for @assetMonthlyTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'月度资产对照'**
+  String get assetMonthlyTitle;
+
+  /// No description provided for @assetMonthlyDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'按账户记录余额，按资产类别或银行卡汇总'**
+  String get assetMonthlyDescription;
+
+  /// No description provided for @assetViewCategory.
+  ///
+  /// In zh, this message translates to:
+  /// **'按资产类别'**
+  String get assetViewCategory;
+
+  /// No description provided for @assetViewBank.
+  ///
+  /// In zh, this message translates to:
+  /// **'按银行卡'**
+  String get assetViewBank;
+
+  /// No description provided for @assetViewAccount.
+  ///
+  /// In zh, this message translates to:
+  /// **'账户明细'**
+  String get assetViewAccount;
+
+  /// No description provided for @assetSnapshotEdit.
+  ///
+  /// In zh, this message translates to:
+  /// **'核对余额'**
+  String get assetSnapshotEdit;
+
+  /// No description provided for @assetSnapshotSave.
+  ///
+  /// In zh, this message translates to:
+  /// **'保存月度快照'**
+  String get assetSnapshotSave;
+
+  /// No description provided for @assetSnapshotHelp.
+  ///
+  /// In zh, this message translates to:
+  /// **'填写各账户原币余额，基金填写市值。保存后冻结当时余额与汇率，不改写日常流水。'**
+  String get assetSnapshotHelp;
+
+  /// No description provided for @assetSnapshotOverwrite.
+  ///
+  /// In zh, this message translates to:
+  /// **'该月已有快照，保存将替换该月记录，其他月份不受影响。'**
+  String get assetSnapshotOverwrite;
+
+  /// No description provided for @assetSnapshotSaved.
+  ///
+  /// In zh, this message translates to:
+  /// **'月度资产快照已保存'**
+  String get assetSnapshotSaved;
+
+  /// No description provided for @assetSnapshotMissing.
+  ///
+  /// In zh, this message translates to:
+  /// **'未保存快照'**
+  String get assetSnapshotMissing;
+
+  /// No description provided for @assetSnapshotDraft.
+  ///
+  /// In zh, this message translates to:
+  /// **'当前草稿'**
+  String get assetSnapshotDraft;
+
+  /// No description provided for @assetSnapshotEmpty.
+  ///
+  /// In zh, this message translates to:
+  /// **'添加账户后核对每月资产余额'**
+  String get assetSnapshotEmpty;
+
+  /// No description provided for @assetSnapshotNative.
+  ///
+  /// In zh, this message translates to:
+  /// **'账户明细显示原币'**
+  String get assetSnapshotNative;
+
+  /// No description provided for @assetSnapshotChange.
+  ///
+  /// In zh, this message translates to:
+  /// **'较上月变化'**
+  String get assetSnapshotChange;
+
+  /// No description provided for @assetSnapshotGroup.
+  ///
+  /// In zh, this message translates to:
+  /// **'账户 / 分组'**
+  String get assetSnapshotGroup;
+
+  /// No description provided for @assetSnapshotTotal.
+  ///
+  /// In zh, this message translates to:
+  /// **'净资产合计'**
+  String get assetSnapshotTotal;
+
+  /// No description provided for @assetSnapshotRates.
+  ///
+  /// In zh, this message translates to:
+  /// **'汇总使用快照保存时的本位币估值；缺汇率时不展示不完整合计。'**
+  String get assetSnapshotRates;
+
+  /// No description provided for @homeCategoryBudgetEmpty.
+  ///
+  /// In zh, this message translates to:
+  /// **'先设置分类默认预算，每月自动沿用'**
+  String get homeCategoryBudgetEmpty;
+
+  /// No description provided for @expenseAccountFixed.
+  ///
+  /// In zh, this message translates to:
+  /// **'日常支出统一使用指定账户，历史支出保留原账户。'**
+  String get expenseAccountFixed;
+
+  /// No description provided for @assetSnapshotSavedState.
+  ///
+  /// In zh, this message translates to:
+  /// **'已保存'**
+  String get assetSnapshotSavedState;
+
+  /// No description provided for @expenseAccountInvalid.
+  ///
+  /// In zh, this message translates to:
+  /// **'指定支出账户不可用或缺少换算汇率，请检查账户设置与汇率。'**
+  String get expenseAccountInvalid;
 }
 
 class _AppLocalizationsDelegate

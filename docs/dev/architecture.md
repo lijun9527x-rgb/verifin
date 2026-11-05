@@ -38,3 +38,5 @@ Controller 经 repository 写库。`VeriFinController.create()` 是生产初始�
 6. [tech-decisions.md](tech-decisions.md)（已决策取舍）与 [known-limitations.md](known-limitations.md)（已接受限制与整改阈值）。
 
 文档与实现不一致时，以第 1 条为准，核实后同步修正文档。
+
+月度资产快照与统一支出账户见 [monthly-assets.md](monthly-assets.md)。账户能力 `type`、资产性质 `assetClass` 与所属银行卡/平台 `groupId` 独立。

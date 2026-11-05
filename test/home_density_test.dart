@@ -1,9 +1,9 @@
+import 'package:verifin/pages/home_category_budget_panel.dart';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:verifin/app/common_widgets.dart';
-import 'package:verifin/app/chart_painters.dart';
 import 'package:verifin/app/models.dart';
 import 'package:verifin/main.dart';
 import 'package:verifin/pages/home_page.dart';
@@ -24,7 +24,7 @@ void main() {
     expect(pill.right, closeTo(row.right, 0.5));
     expect(tester.takeException(), isNull);
   });
-  testWidgets('首页保留指标方块与原预算布局，预算仍可打开详情', (tester) async {
+  testWidgets('首页保留指标方块，分类预算展示进度并可打开详情', (tester) async {
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = const Size(393, 852);
     addTearDown(tester.view.reset);
@@ -32,7 +32,7 @@ void main() {
     await controller.importTransactionsFromCsv(
       File('docs/fixtures/preview-transactions.csv').readAsStringSync(),
     );
-    controller.setMonthlyBudget(DateTime.now(), 5000);
+    controller.setDefaultCategoryBudget('dining', 5000);
     controller.setThemePreference(ThemePreference.light);
     await controller.waitForPendingWrites();
     await tester.pumpWidget(VeriFinApp(controller: controller));
@@ -47,20 +47,9 @@ void main() {
     expect(transactions, findsNWidgets(5));
     final navTop = tester.getRect(find.byKey(const Key('main_bottom_nav'))).top;
     expect(tester.getRect(transactions.last).bottom, lessThan(navTop));
-    final budget = find.byType(BudgetPanel);
+    final budget = find.byType(HomeCategoryBudgetPanel);
     expect(
-      find.descendant(of: budget, matching: find.text('支出')),
-      findsOneWidget,
-    );
-    expect(
-      find.descendant(of: budget, matching: find.text('剩余日均')),
-      findsOneWidget,
-    );
-    expect(
-      find.descendant(
-        of: budget,
-        matching: find.byWidgetPredicate((widget) => widget is VeriBudgetRing),
-      ),
+      find.descendant(of: budget, matching: find.text('餐饮')),
       findsOneWidget,
     );
     expect(
@@ -68,10 +57,8 @@ void main() {
         of: budget,
         matching: find.byType(LinearProgressIndicator),
       ),
-      findsNothing,
+      findsOneWidget,
     );
-    // 原预算卡保留完整圆环与原信息层级，不再为首屏目标压缩结构。
-    expect(tester.getRect(budget).height, greaterThan(180));
     await tester.drag(firstVerticalScrollable(), const Offset(0, -240));
     await tester.pumpAndSettle();
     await tester.tap(budget);

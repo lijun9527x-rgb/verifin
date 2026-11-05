@@ -1,3 +1,4 @@
+import 'package:verifin/pages/home_category_budget_panel.dart';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -25,7 +26,7 @@ void main() {
     );
     expect(find.text('4个首页面板'), findsOneWidget);
     expect(find.byType(CalendarPreview), findsOneWidget);
-    expect(find.byType(MoneyUnitLabel), findsWidgets);
+    expect(find.byType(HomeCategoryBudgetPanel), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('panel_settings_entry_home')));
     await tester.pumpAndSettle();
@@ -54,7 +55,7 @@ void main() {
     await tester.tap(find.byTooltip('保存'));
     await tester.pumpAndSettle();
 
-    expect(find.byType(BudgetPanel), findsNothing);
+    expect(find.byType(HomeCategoryBudgetPanel), findsNothing);
     // 回到顶部确认支出走势仍然渲染。
     await tester.drag(firstVerticalScrollable(), const Offset(0, 800));
     await tester.pumpAndSettle();
@@ -80,7 +81,7 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
     await pumpApp(tester, store);
     await tester.pumpAndSettle();
-    expect(find.byType(BudgetPanel), findsNothing);
+    expect(find.byType(HomeCategoryBudgetPanel), findsNothing);
     expect(find.byType(HomeTrendPanel), findsOneWidget);
   });
 

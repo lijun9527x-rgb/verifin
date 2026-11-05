@@ -72,6 +72,7 @@ void main() {
     id: 'acc-x',
     bookId: 'book-x',
     name: '往返测试卡',
+    assetClass: AssetClass.foreignFixedDeposit,
     type: AccountType.cash,
     groupId: 'grp-1',
     initialBalance: -50.25,

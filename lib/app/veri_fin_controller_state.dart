@@ -84,6 +84,8 @@ mixin _ControllerState on ChangeNotifier {
 
   final List<LedgerEntry> _entries = <LedgerEntry>[];
   final List<LedgerBook> _ledgerBooks = <LedgerBook>[];
+  final List<AssetMonthSnapshot> _assetSnapshots = [];
+  Future<void> _assetSnapshotSaveTail = Future.value();
   final List<Account> _accounts = <Account>[];
   final List<AccountGroup> _accountGroups = <AccountGroup>[];
   final List<Category> _categories = <Category>[];
@@ -393,6 +395,9 @@ mixin _ControllerState on ChangeNotifier {
       _activeBookId = defaultLedgerBookId;
       _store.write(_activeBookKey, _activeBookId);
     }
+    _assetSnapshots
+      ..clear()
+      ..addAll(await _repository.loadAssetSnapshots());
     final entries = await _repository.loadEntries();
     entries.sort(_compareEntriesLatestFirst);
     _entries
@@ -1171,6 +1176,7 @@ mixin _ControllerState on ChangeNotifier {
     Map<String, double>? dailyBudgets,
   }) {
     return LedgerDataSnapshot(
+      assetSnapshots: List.of(_assetSnapshots),
       books: books ?? List<LedgerBook>.of(_ledgerBooks),
       accounts: accounts ?? List<Account>.of(_accounts),
       accountGroups: accountGroups ?? List<AccountGroup>.of(_accountGroups),

@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:verifin/app/models.dart';
+import 'package:verifin/app/veri_fin_controller.dart';
 import 'package:verifin/data/app_database.dart';
 import 'package:verifin/data/ledger_repository.dart';
 import 'package:verifin/local_storage/local_storage.dart';
@@ -31,6 +32,46 @@ void main() {
     opened.add(db);
     return SqliteLedgerRepository(db);
   }
+
+  test('月度资产快照落入 SQLite，新控制器冷读取并保留冻结金额', () async {
+    final repo = await openRepo();
+    final controller = await createTestController(
+      LocalKeyValueStore(),
+      repository: repo,
+    );
+    await controller.addAccountDraft(
+      const Account(
+        id: 'monthly-usd',
+        bookId: 'default',
+        name: '外币活期',
+        type: AccountType.debitCard,
+        assetClass: AssetClass.foreignDemandDeposit,
+        groupId: null,
+        initialBalance: 100,
+        currencyCode: 'USD',
+        iconCode: 'wallet',
+        note: '',
+        includeInAssets: true,
+        hidden: false,
+      ),
+    );
+    final month = DateTime(2026, 1);
+    expect(
+      await controller.saveAssetSnapshot(
+        controller.buildAssetSnapshot(month, rates: {'USD': 7.1}),
+      ),
+      isTrue,
+    );
+    final reloaded = await createTestController(
+      LocalKeyValueStore(),
+      repository: repo,
+    );
+    expect(reloaded.assetSnapshotFor(month)!.totalInBase, 710);
+    expect(
+      reloaded.assetSnapshotFor(month)!.holdings.single.assetClass,
+      AssetClass.foreignDemandDeposit,
+    );
+  });
 
   LedgerEntry entry(String id, {double amount = 10}) => LedgerEntry(
     id: id,

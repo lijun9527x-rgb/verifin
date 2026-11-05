@@ -144,7 +144,8 @@ mixin _ControllerOps on ChangeNotifier, _ControllerState {
       (entry) => entry.key.startsWith('$bookId:') && entry.value != 0,
     );
 
-    return _entries.any((entry) => entry.bookId == bookId) ||
+    return _assetSnapshots.any((snapshot) => snapshot.bookId == bookId) ||
+        _entries.any((entry) => entry.bookId == bookId) ||
         _accounts.any(
           (account) =>
               account.bookId == bookId &&
@@ -616,6 +617,17 @@ mixin _ControllerOps on ChangeNotifier, _ControllerState {
     RecurringRule rule,
     DateTime due,
   ) {
+    final result = _materializeRecurringEntryRaw(rule, due);
+    if (result.entry == null) return result;
+    final normalized = _expensePaymentEntry(result.entry!);
+    if (normalized == null) {
+      return (entry: null, missingCodes: {rule.currencyCode});
+    }
+    return (entry: normalized, missingCodes: const <String>{});
+  }
+
+  ({LedgerEntry? entry, Set<String> missingCodes})
+  _materializeRecurringEntryRaw(RecurringRule rule, DateTime due) {
     final book = ledgerBooks
         .where((book) => book.id == rule.bookId)
         .firstOrNull;
@@ -1351,9 +1363,9 @@ mixin _ControllerOps on ChangeNotifier, _ControllerState {
     return true;
   }
 
-  /// 当前账本的默认付款账户 id；未设置、或该账户已删除/隐藏时返回 null。设备本地
-  /// 偏好，不进 JSON 备份、初始化时随账户一起清空。记账（手动/AI 未识别账户时）
-  /// 用它作默认账户。
+  /// 当前账本指定的统一支出账户；未设置或账户已删除/隐藏时返回 null。
+  /// 保存新支出（手动、AI、导入确认、周期补记）统一应用此账户；历史编辑、收入、
+  /// 转账、退款及系统余额调整保留各自账户。偏好随 JSON 备份恢复，重置时清空。
   String? get defaultAccountId {
     final id = _defaultAccountIds[_activeBookId];
     if (id == null || id.isEmpty) {
@@ -2038,8 +2050,69 @@ mixin _ControllerOps on ChangeNotifier, _ControllerState {
   // 交易列表始终维护 occurredAt 倒序;同一时刻用 id 决出稳定顺序。
   VoidCallback? onEntryAdded;
 
+  /// 对新支出应用统一扣款账户；系统余额调整和历史编辑不走此规则。
+  LedgerEntry? _expensePaymentEntry(
+    LedgerEntry entry, {
+    Iterable<ExchangeRate>? rates,
+  }) {
+    if (entry.type != EntryType.expense ||
+        _categories.any(
+          (category) =>
+              category.id == entry.categoryId &&
+              category.bookId == entry.bookId &&
+              category.isBalanceAdjust,
+        )) {
+      return entry;
+    }
+    final selectedId = _defaultAccountIds[entry.bookId];
+    if (selectedId == null || selectedId.isEmpty) return entry;
+    final account = _accounts
+        .where(
+          (a) => a.bookId == entry.bookId && a.id == selectedId && !a.hidden,
+        )
+        .firstOrNull;
+    final book = _ledgerBooks.where((b) => b.id == entry.bookId).firstOrNull;
+    if (account == null || book == null) return null;
+    if (entry.accountId == account.id) return entry;
+    final amount = account.currencyCode == book.baseCurrencyCode
+        ? entry.baseAmount
+        : account.currencyCode == entry.currencyCode
+        ? entry.amount
+        : null;
+    final converted = amount == null
+        ? convertCurrencyAmount(
+            amount: entry.baseAmount,
+            sourceCurrencyCode: book.baseCurrencyCode,
+            targetCurrencyCode: account.currencyCode,
+            baseCurrencyCode: book.baseCurrencyCode,
+            bookId: book.id,
+            date: entry.occurredAt,
+            rates: rates ?? _exchangeRates,
+          )
+        : null;
+    final accountAmount =
+        amount ??
+        (converted is ConvertedCurrencyAmount ? converted.amount : null);
+    if (accountAmount == null) return null;
+    return entry.copyWith(
+      accountId: account.id,
+      accountAmount: normalizeCurrencyAmount(
+        accountAmount,
+        account.currencyCode,
+      ),
+    );
+  }
+
   void addEntry(LedgerEntry entry) {
-    _entries.insert(0, entry);
+    final normalized = _expensePaymentEntry(entry);
+    if (normalized == null) {
+      _handlePersistError(
+        StateError('Invalid designated expense account or missing rate'),
+        StackTrace.current,
+      );
+      return;
+    }
+    _entries.insert(0, normalized);
     _entries.sort(_compareEntriesLatestFirst);
     _persistEntries();
     notifyListeners();
@@ -2075,6 +2148,15 @@ mixin _ControllerOps on ChangeNotifier, _ControllerState {
     double? rememberRateToBase,
     DateTime? rememberRateEffectiveDate,
   }) async {
+    if (isNew) {
+      final normalized = _expensePaymentEntry(entry);
+      if (normalized == null) {
+        return _entrySaveValidationFailure(
+          EntryValidationCode.invalidExpenseAccount,
+        );
+      }
+      entry = normalized;
+    }
     final currentIndex = _entries.indexWhere((item) => item.id == entry.id);
     if ((isNew && currentIndex != -1) || (!isNew && currentIndex == -1)) {
       return _entrySaveValidationFailure(EntryValidationCode.staleDraft);
@@ -2436,6 +2518,22 @@ mixin _ControllerOps on ChangeNotifier, _ControllerState {
     if (entries.isEmpty && alwaysCreateAccountIds.isEmpty) {
       return false;
     }
+    final normalizedEntries = <LedgerEntry>[];
+    for (final entry in entries) {
+      final normalized = _expensePaymentEntry(
+        entry,
+        rates: [..._exchangeRates, ...candidateExchangeRates],
+      );
+      if (normalized == null) {
+        _logger?.warning(
+          'Invalid designated expense account or missing rate',
+          source: 'import',
+        );
+        return false;
+      }
+      normalizedEntries.add(normalized);
+    }
+    entries = normalizedEntries;
     final importIssue = validateLedgerEntries(
       books: ledgerBooks,
       accounts: <Account>[..._accounts, ...candidateAccounts],
@@ -3139,6 +3237,9 @@ mixin _ControllerOps on ChangeNotifier, _ControllerState {
     final saved = await _runTrackedWrite(
       () => _repository.replaceAllLedgerData(
         LedgerDataSnapshot(
+          assetSnapshots: _assetSnapshots
+              .where((snapshot) => snapshot.bookId != bookId)
+              .toList(),
           books: nextBooks,
           accounts: nextAccounts,
           accountGroups: nextGroups,
@@ -3158,6 +3259,7 @@ mixin _ControllerOps on ChangeNotifier, _ControllerState {
       return false;
     }
 
+    _assetSnapshots.removeWhere((snapshot) => snapshot.bookId == bookId);
     _ledgerBooks
       ..clear()
       ..addAll(nextBooks);
@@ -4472,6 +4574,7 @@ mixin _ControllerOps on ChangeNotifier, _ControllerState {
       return false;
     }
 
+    _assetSnapshots.clear();
     _entries.clear();
     _accounts
       ..clear()
@@ -4558,6 +4661,9 @@ mixin _ControllerOps on ChangeNotifier, _ControllerState {
         'ledgerBooks': _ledgerBooks.map((book) => book.toJson()).toList(),
         'activeBookId': _activeBookId,
         'entries': _entries.map((entry) => entry.toJson()).toList(),
+        'assetSnapshots': _assetSnapshots
+            .map((snapshot) => snapshot.toJson())
+            .toList(),
         'accounts': _accounts.map((account) => account.toJson()).toList(),
         'accountGroups': _accountGroups.map((group) => group.toJson()).toList(),
         'categories': _categories.map((category) => category.toJson()).toList(),
@@ -4960,11 +5066,25 @@ mixin _ControllerOps on ChangeNotifier, _ControllerState {
         ledgerIssue.code != LedgerDataValidationCode.staleRefundCache) {
       throw FormatException('账目关联或金额不合法：${ledgerIssue.code.name}');
     }
+    final nextAssetSnapshots = _decodeModelList<AssetMonthSnapshot>(
+      data['assetSnapshots'],
+      AssetMonthSnapshot.fromJson,
+    );
+    if (nextAssetSnapshots.any(
+          (snapshot) => !validAssetSnapshot(snapshot, nextLedgerBooks),
+        ) ||
+        nextAssetSnapshots.map((snapshot) => snapshot.id).toSet().length !=
+            nextAssetSnapshots.length) {
+      throw const FormatException(
+        'Invalid asset snapshot book or duplicate month',
+      );
+    }
     nextAttachments = await _materializeImportedAttachments(
       importedAttachments,
       readStagedAttachment,
     );
 
+    final oldAssetSnapshots = List<AssetMonthSnapshot>.of(_assetSnapshots);
     final oldBooks = List<LedgerBook>.of(_ledgerBooks);
     final oldAccounts = List<Account>.of(_accounts);
     final oldGroups = List<AccountGroup>.of(_accountGroups);
@@ -5007,6 +5127,9 @@ mixin _ControllerOps on ChangeNotifier, _ControllerState {
     final oldShowRunningBalance = _showRunningBalance;
     final oldHomeTrendConfig = _homeTrendConfig;
     try {
+      _assetSnapshots
+        ..clear()
+        ..addAll(nextAssetSnapshots);
       _ledgerBooks
         ..clear()
         ..addAll(nextLedgerBooks);
@@ -5098,6 +5221,9 @@ mixin _ControllerOps on ChangeNotifier, _ControllerState {
       _accounts
         ..clear()
         ..addAll(oldAccounts);
+      _assetSnapshots
+        ..clear()
+        ..addAll(oldAssetSnapshots);
       _accountGroups
         ..clear()
         ..addAll(oldGroups);

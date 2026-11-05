@@ -552,11 +552,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get panelRecentDesc => 'Shows the 5 most recent transactions';
 
   @override
-  String get panelBudgetLabel => 'Monthly budget';
+  String get panelBudgetLabel => 'Category budgets';
 
   @override
   String get panelBudgetDesc =>
-      'This month\'s budget progress and category overspend alerts';
+      'Budget, spending and remaining amount for each category';
 
   @override
   String get panelCalendarDesc =>
@@ -3117,17 +3117,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get fabModeManualTapAiLongPress => 'Tap: manual · Long-press: AI';
 
   @override
-  String get defaultAccountTitle => 'Default account';
+  String get defaultAccountTitle => 'Designated expense account';
 
   @override
-  String get defaultAccountPickerTitle => 'Default payment account';
+  String get defaultAccountPickerTitle => 'Choose an everyday expense account';
 
   @override
   String get defaultAccountNone => 'No default';
 
   @override
   String get defaultAccountNoneHint =>
-      'No account preselected when adding entries';
+      'Choose an account per entry when no account is designated';
 
   @override
   String get setAsDefaultAccount => 'Set as default account';
@@ -5111,4 +5111,101 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get widgetConfigurationFailed =>
       'Could not load this widget. Return to the home screen and try again.';
+
+  @override
+  String get assetClassLabel => 'Asset class';
+
+  @override
+  String get assetClassDemand => 'Demand deposits';
+
+  @override
+  String get assetClassFixed => 'Fixed deposits';
+
+  @override
+  String get assetClassBond => 'Bond funds';
+
+  @override
+  String get assetClassEquity => 'Equity funds';
+
+  @override
+  String get assetClassForeignFixed => 'Foreign fixed deposits';
+
+  @override
+  String get assetClassForeignDemand => 'Foreign demand deposits';
+
+  @override
+  String get assetClassOther => 'Other assets';
+
+  @override
+  String get assetMonthlyTitle => 'Monthly asset comparison';
+
+  @override
+  String get assetMonthlyDescription =>
+      'Record balances by account; group by asset class or bank';
+
+  @override
+  String get assetViewCategory => 'By asset class';
+
+  @override
+  String get assetViewBank => 'By bank';
+
+  @override
+  String get assetViewAccount => 'By account';
+
+  @override
+  String get assetSnapshotEdit => 'Reconcile balances';
+
+  @override
+  String get assetSnapshotSave => 'Save monthly snapshot';
+
+  @override
+  String get assetSnapshotHelp =>
+      'Enter native-currency balances or fund market values. Saving freezes balances and rates without changing transactions.';
+
+  @override
+  String get assetSnapshotOverwrite =>
+      'This month already has a snapshot. Saving replaces only this month.';
+
+  @override
+  String get assetSnapshotSaved => 'Monthly asset snapshot saved';
+
+  @override
+  String get assetSnapshotMissing => 'No saved snapshot';
+
+  @override
+  String get assetSnapshotDraft => 'Current draft';
+
+  @override
+  String get assetSnapshotEmpty => 'Add accounts to reconcile monthly balances';
+
+  @override
+  String get assetSnapshotNative => 'Native currency in account view';
+
+  @override
+  String get assetSnapshotChange => 'Change from previous month';
+
+  @override
+  String get assetSnapshotGroup => 'Account / group';
+
+  @override
+  String get assetSnapshotTotal => 'Total net assets';
+
+  @override
+  String get assetSnapshotRates =>
+      'Totals use the base-currency values frozen in each snapshot. Incomplete totals are hidden when rates are missing.';
+
+  @override
+  String get homeCategoryBudgetEmpty =>
+      'Set category budgets once to carry them into each month';
+
+  @override
+  String get expenseAccountFixed =>
+      'New everyday expenses use the designated account. Existing expenses keep their original account.';
+
+  @override
+  String get assetSnapshotSavedState => 'Saved';
+
+  @override
+  String get expenseAccountInvalid =>
+      'The designated expense account is unavailable or a conversion rate is missing. Check account settings and rates.';
 }

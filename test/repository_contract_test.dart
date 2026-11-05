@@ -77,6 +77,56 @@ void _runContract(String name, Future<LedgerRepository> Function() openRepo) {
       expect(await repo.loadDailyBudgets(), isEmpty);
     });
 
+    test('资产快照整表保存、读取、整账本替换与清空契约一致', () async {
+      final repo = await openRepo();
+      expect(await repo.loadAssetSnapshots(), isEmpty);
+      final snapshot = AssetMonthSnapshot(
+        bookId: 'default',
+        month: DateTime(2026, 1),
+        recordedAt: DateTime(2026, 1, 31),
+        baseCurrencyCode: 'CNY',
+        holdings: const [
+          AssetHoldingSnapshot(
+            accountId: 'usd',
+            name: 'USD deposit',
+            bankName: 'Bank',
+            assetClass: AssetClass.foreignFixedDeposit,
+            currencyCode: 'USD',
+            balance: 100,
+            rateToBase: 7.1,
+            baseBalance: 710,
+          ),
+        ],
+      );
+      await repo.saveAssetSnapshots([snapshot]);
+      expect(
+        (await repo.loadAssetSnapshots()).single.toJson(),
+        snapshot.toJson(),
+      );
+      await repo.replaceAllLedgerData(
+        LedgerDataSnapshot(
+          books: [],
+          accounts: [],
+          accountGroups: [],
+          categories: [],
+          tags: [],
+          attachments: [],
+          entries: [],
+          recurringRules: [],
+          monthlyBudgets: {},
+          categoryBudgets: {},
+          dailyBudgets: {},
+          assetSnapshots: [snapshot],
+        ),
+      );
+      expect(
+        (await repo.loadAssetSnapshots()).single.toJson(),
+        snapshot.toJson(),
+      );
+      await repo.saveAssetSnapshots([]);
+      expect(await repo.loadAssetSnapshots(), isEmpty);
+    });
+
     test('无遗留附件数据时迁移相关读取安全退化', () async {
       final repo = await openRepo();
       expect(await repo.loadAttachmentDataUrl('missing'), isNull);

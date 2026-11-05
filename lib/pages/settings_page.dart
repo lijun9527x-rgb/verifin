@@ -433,6 +433,13 @@ class _SettingsPageState extends State<SettingsPage> {
                         trailingIcon: Icons.chevron_right,
                         onTap: () => _pickDefaultAccount(controller),
                       ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: Text(
+                          AppLocalizations.of(context).expenseAccountFixed,
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ),
                       const Divider(height: 1),
                       CompactSwitchRow(
                         icon: Icons.auto_fix_high_outlined,

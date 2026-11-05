@@ -3,6 +3,7 @@
 library;
 
 export 'models/account.dart';
+export 'models/asset_snapshot.dart';
 export 'models/category.dart';
 export 'models/category_keys.dart';
 export 'models/currency.dart';
