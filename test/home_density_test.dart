@@ -24,7 +24,7 @@ void main() {
     expect(pill.right, closeTo(row.right, 0.5));
     expect(tester.takeException(), isNull);
   });
-  testWidgets('首页保留指标方块，分类预算展示进度并可打开详情', (tester) async {
+  testWidgets('首页保留指标方块，分类预算行编辑本期额度、入口打开详情', (tester) async {
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = const Size(393, 852);
     addTearDown(tester.view.reset);
@@ -59,11 +59,74 @@ void main() {
       ),
       findsOneWidget,
     );
+
+    // 再加一个有预算的分类，用来验证行主体打开的是该行自己的分类，而不是首项。
+    controller.setDefaultCategoryBudget('transport', 800);
+    await tester.pumpAndSettle();
+
     await tester.drag(firstVerticalScrollable(), const Offset(0, -240));
     await tester.pumpAndSettle();
-    await tester.tap(budget);
+
+    // 分类行主体直接编辑该分类在当前预算键月的额度：标题写明分类与口径。
+    Future<void> openRowBudget(String label) async {
+      final row = find.descendant(of: budget, matching: find.text(label));
+      await tester.ensureVisible(row);
+      await tester.pumpAndSettle();
+      await tester.tap(row);
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> cancelNumberPad() async {
+      Navigator.of(
+        tester.element(find.byKey(const Key('number_pad_display'))),
+      ).pop();
+      await tester.pumpAndSettle();
+    }
+
+    // 餐饮行：打开的是餐饮自己的本期额度，写入当前预算键月的单期覆盖。
+    final keyMonth = controller.budgetKeyMonthFor(DateTime.now());
+    await openRowBudget('餐饮');
+    expect(find.text('设置餐饮本月预算'), findsOneWidget);
+    expect(find.byType(BudgetOverviewPage), findsNothing);
+    await tester.tap(find.byKey(const Key('number_key_C')));
+    for (final key in <String>['9', '00']) {
+      await tester.tap(find.byKey(Key('number_key_$key')));
+    }
+    await tester.tap(find.byKey(const Key('number_pad_ok')));
+    await tester.pumpAndSettle();
+    expect(controller.categoryBudget(keyMonth, 'dining'), 900);
+    expect(controller.categoryBudgetIsOverride(keyMonth, 'dining'), isTrue);
+    // 只改这一行：默认预算与其它分类的本期预算都不动。
+    expect(controller.defaultCategoryBudget('dining'), 5000);
+    expect(controller.categoryBudget(keyMonth, 'transport'), 800);
+    expect(controller.categoryBudgetIsOverride(keyMonth, 'transport'), isFalse);
+
+    // 交通行：标题切换到该行自己的分类，取消不写入。
+    await openRowBudget('交通');
+    expect(find.text('设置交通本月预算'), findsOneWidget);
+    expect(find.byType(BudgetOverviewPage), findsNothing);
+    await cancelNumberPad();
+    expect(controller.categoryBudget(keyMonth, 'transport'), 800);
+    expect(controller.categoryBudgetIsOverride(keyMonth, 'transport'), isFalse);
+    expect(controller.categoryBudget(keyMonth, 'dining'), 900);
+    expect(find.byType(BudgetOverviewPage), findsNothing);
+
+    // 标题入口仍进预算总览。
+    await tester.tap(find.descendant(of: budget, matching: find.text('分类预算')));
     await tester.pumpAndSettle();
     expect(find.byType(HomeTrendPanel), findsNothing);
+    expect(find.byType(BudgetOverviewPage), findsOneWidget);
+    Navigator.of(tester.element(find.byType(BudgetOverviewPage))).pop();
+    await tester.pumpAndSettle();
+
+    // 月份入口同样进预算总览（卡片标题行唯一的 TextButton）。
+    final monthEntry = find.descendant(
+      of: budget,
+      matching: find.byType(TextButton),
+    );
+    expect(monthEntry, findsOneWidget);
+    await tester.tap(monthEntry);
+    await tester.pumpAndSettle();
     expect(find.byType(BudgetOverviewPage), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
