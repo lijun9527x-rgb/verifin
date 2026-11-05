@@ -4624,14 +4624,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get assetTrendMissingRate => '暂无月度资产记录';
 
   @override
-  String assetTrendPartialMissing(String currencies, String months) {
-    return '部分月份缺少 $currencies 汇率（$months），这些月份未绘制；补上这些月份或更早的汇率后显示。';
-  }
-
-  @override
-  String get exchangeRateSetAction => '设置汇率';
-
-  @override
   String baseCurrencyAmountLabel(String currency) {
     return '本位币 $currency';
   }

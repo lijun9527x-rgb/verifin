@@ -4773,14 +4773,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get assetTrendMissingRate => 'No monthly asset records yet';
 
   @override
-  String assetTrendPartialMissing(String currencies, String months) {
-    return 'Some months are missing $currencies rates ($months); those months are not drawn. Add rates for those months or earlier to show them.';
-  }
-
-  @override
-  String get exchangeRateSetAction => 'Set rate';
-
-  @override
   String baseCurrencyAmountLabel(String currency) {
     return 'Base currency $currency';
   }

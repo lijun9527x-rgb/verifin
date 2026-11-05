@@ -3065,14 +3065,6 @@
     "placeholders": {"currencies": {"type": "String"}}
   },
   "assetTrendMissingRate": "暂无月度资产记录",
-  "assetTrendPartialMissing": "部分月份缺少 {currencies} 汇率（{months}），这些月份未绘制；补上这些月份或更早的汇率后显示。",
-  "@assetTrendPartialMissing": {
-    "placeholders": {
-      "currencies": {"type": "String"},
-      "months": {"type": "String"}
-    }
-  },
-  "exchangeRateSetAction": "设置汇率",
   "baseCurrencyAmountLabel": "本位币 {currency}",
   "@baseCurrencyAmountLabel": {
     "placeholders": {"currency": {"type": "String"}}

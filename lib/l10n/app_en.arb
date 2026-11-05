@@ -1945,14 +1945,6 @@
     "placeholders": {"currencies": {"type": "String"}}
   },
   "assetTrendMissingRate": "No monthly asset records yet",
-  "assetTrendPartialMissing": "Some months are missing {currencies} rates ({months}); those months are not drawn. Add rates for those months or earlier to show them.",
-  "@assetTrendPartialMissing": {
-    "placeholders": {
-      "currencies": {"type": "String"},
-      "months": {"type": "String"}
-    }
-  },
-  "exchangeRateSetAction": "Set rate",
   "baseCurrencyAmountLabel": "Base currency {currency}",
   "@baseCurrencyAmountLabel": {
     "placeholders": {"currency": {"type": "String"}}
