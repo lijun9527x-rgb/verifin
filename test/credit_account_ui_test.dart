@@ -190,7 +190,7 @@ void main() {
     await pumpDetail(tester, controller, card);
 
     // 打开类型选择器，选「现金」。
-    await tester.tap(find.text('类型'));
+    await tester.tap(find.text('账户类型'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('现金'));
     await tester.pumpAndSettle();
@@ -301,7 +301,7 @@ void main() {
     await tester.tap(find.byKey(const Key('open_account_editor')));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('类型'));
+    await tester.tap(find.text('账户类型'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('现金'));
     await tester.pumpAndSettle();
@@ -327,12 +327,12 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     final controller = await pumpApp(tester);
     await tapBottomTab(tester, 1);
-    await tester.tap(find.byTooltip('资产操作'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('添加账户'));
+    await tester.tap(find.byTooltip('添加资产'));
     await tester.pumpAndSettle();
 
-    // 切到信用卡类型后信用字段才出现。
+    // 账户能力默认折叠在「卡片与信用（选填）」里，展开后切到信用卡类型。
+    await tester.tap(find.byKey(const Key('add_account_advanced_toggle')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('add_account_type_choice')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('信用卡').last);

@@ -387,8 +387,9 @@ class ConvertedAccountBalances {
       : null;
 }
 
-/// Converts account-native balances to one ledger base currency. If any rate
-/// is missing, [completeTotal] is null; callers must not display a partial sum.
+/// 当前资产统一使用手填本位币金额，缺少金额时不给部分总和，不回退汇率。
+/// [baseValuationOf] 为空时读取账户上的当前手填值；历史调用方可显式返回 null，
+/// 避免把今天的金额套用到过去。本位币账户仍直接使用余额。
 ConvertedAccountBalances convertAccountBalancesToBase({
   required Iterable<Account> accounts,
   required double Function(Account account) balanceOf,
@@ -396,6 +397,7 @@ ConvertedAccountBalances convertAccountBalancesToBase({
   required String baseCurrencyCode,
   required DateTime date,
   required Iterable<ExchangeRate> rates,
+  double? Function(Account account)? baseValuationOf,
 }) {
   final amounts = <String, double>{};
   final missingCodes = <String>{};
@@ -404,30 +406,24 @@ ConvertedAccountBalances convertAccountBalancesToBase({
   final staleAccountIds = <String>{};
   for (final account in accounts) {
     final balance = balanceOf(account);
-    if (isZeroCurrencyAmount(balance, account.currencyCode)) {
-      amounts[account.id] = 0;
+    if (account.currencyCode == baseCurrencyCode) {
+      amounts[account.id] = normalizeCurrencyAmount(balance, baseCurrencyCode);
       continue;
     }
-    final result = convertCurrencyAmount(
-      amount: balance,
-      sourceCurrencyCode: account.currencyCode,
-      targetCurrencyCode: baseCurrencyCode,
-      baseCurrencyCode: baseCurrencyCode,
-      bookId: bookId,
-      date: date,
-      rates: rates,
-    );
-    if (result is ConvertedCurrencyAmount) {
-      amounts[account.id] = result.amount;
-      final rateDate = result.sourceRateDate;
-      if (rateDate != null) {
-        rateDates[account.id] = rateDate;
-        if (calendarDaysBetween(rateDate, date) > 30) {
-          staleAccountIds.add(account.id);
-        }
-      }
-    } else if (result is MissingCurrencyRate) {
-      missingCodes.addAll(result.currencyCodes);
+    final valuation = baseValuationOf == null
+        ? account.baseValuation
+        : baseValuationOf(account);
+    if (valuation != null) {
+      amounts[account.id] = normalizeCurrencyAmount(
+        valuation,
+        baseCurrencyCode,
+      );
+      continue;
+    }
+    if (isZeroCurrencyAmount(balance, account.currencyCode)) {
+      amounts[account.id] = 0;
+    } else {
+      missingCodes.add(account.currencyCode);
       affectedIds.add(account.id);
     }
   }

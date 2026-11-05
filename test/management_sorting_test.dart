@@ -69,7 +69,7 @@ void main() {
     expect(find.text('删除标签'), findsOneWidget);
   });
 
-  testWidgets('账户分组行和行尾入口打开同一个锚点菜单', (tester) async {
+  testWidgets('账户分组行进入容器详情，行尾入口打开锚点菜单', (tester) async {
     final controller = await makeController();
     await controller.addAccountGroup('日常');
     await tester.pumpWidget(
@@ -82,17 +82,18 @@ void main() {
 
     expect(find.byIcon(Icons.folder_outlined), findsOneWidget);
     expect(find.byIcon(Icons.palette_outlined), findsNothing);
-    await tester.tap(find.text('日常'));
+    // 行尾三点才打开操作菜单。
+    await tester.tap(find.byTooltip('日常操作'));
     await tester.pumpAndSettle();
     expect(find.text('重命名'), findsOneWidget);
     expect(find.text('删除'), findsOneWidget);
 
     await tester.tapAt(const Offset(2, 2));
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('日常'));
+    // 点击整行进入该银行卡／平台的资产明细。
+    await tester.tap(find.text('日常'));
     await tester.pumpAndSettle();
-    expect(find.text('重命名'), findsOneWidget);
-    expect(find.text('删除'), findsOneWidget);
+    expect(find.byType(AccountGroupDetailPage), findsOneWidget);
   });
 
   testWidgets('账户分组向下拖动会产生排序草稿并可保存', (tester) async {
@@ -170,12 +171,12 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byTooltip('信用'));
+    await tester.tap(find.byTooltip('信用操作'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('删除'));
     await tester.pumpAndSettle();
-    expect(find.text('删除分组'), findsOneWidget);
-    expect(find.textContaining('1 个账户将移到“未分组”'), findsOneWidget);
+    expect(find.text('删除银行卡／平台'), findsOneWidget);
+    expect(find.textContaining('1 项资产将移到“未归类”'), findsOneWidget);
     await tester.tap(find.widgetWithText(FilledButton, '删除'));
     await tester.pumpAndSettle();
 

@@ -12,7 +12,7 @@ import '../app/series_math.dart';
 import '../app/veri_fin_scope.dart';
 import 'ai_chat_page.dart';
 import 'budget_pages.dart';
-import 'currency_rates_page.dart';
+import 'assets_pages.dart';
 import 'panel_settings_page.dart';
 import 'sheets.dart';
 import 'transactions_pages.dart';
@@ -430,7 +430,7 @@ class _AssetSummaryPanelState extends State<_AssetSummaryPanel> {
               currencyCodes: valuation.missingCurrencyCodes,
               onTap: () => Navigator.of(context).push<void>(
                 MaterialPageRoute<void>(
-                  builder: (_) => const CurrencyRatesPage(),
+                  builder: (_) => const AccountGroupsPage(),
                 ),
               ),
             )

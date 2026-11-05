@@ -401,7 +401,7 @@ void main() {
     expect(result.summary, contains('100'));
   });
 
-  test('netWorth 缺汇率时不给部分和', () {
+  test('netWorth 缺手填金额时不给部分和', () {
     final ctx = _ctx(
       const <LedgerEntry>[],
       accounts: <Account>[
@@ -411,7 +411,26 @@ void main() {
     );
     final result = _tool('netWorth').run(ctx, const <String, Object?>{});
     expect(result.display, isNull);
-    expect(result.summary, contains('缺少汇率'));
+    expect(result.summary, contains('未填写对应本位币金额'));
+  });
+
+  test('AI账户与净资产汇总使用手填金额，包括原币余额为0的资产', () {
+    final ctx = _ctx(
+      const <LedgerEntry>[],
+      accounts: [
+        _account(
+          id: 'usd',
+          name: '美元活期',
+          currencyCode: 'USD',
+        ).copyWith(baseValuation: 7100),
+      ],
+      balanceOf: (_) => 0,
+    );
+    for (final name in ['netWorth', 'accountsOverview']) {
+      final result = _tool(name).run(ctx, const <String, Object?>{});
+      expect(result.summary.replaceAll(',', ''), contains('7100'));
+      expect(result.summary, isNot(contains('缺汇率')));
+    }
   });
 
   test('creditCardBill 汇总欠款、可用额度与本期账单', () {

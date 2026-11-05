@@ -216,9 +216,8 @@ Finder firstVerticalScrollable() => find
 
 Future<void> addTestAccount(WidgetTester tester, String name) async {
   await tapBottomTab(tester, 1);
-  await tester.tap(find.byTooltip('资产操作'));
-  await tester.pumpAndSettle();
-  await tester.tap(find.text('添加账户'));
+  // 资产页头部直接提供「添加资产」，不再从操作菜单进入。
+  await tester.tap(find.byTooltip('添加资产'));
   await tester.pumpAndSettle();
   await tester.enterText(find.byType(TextFormField).first, name);
   await tester.pump();

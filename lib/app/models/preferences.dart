@@ -194,9 +194,11 @@ enum AssetAccountViewMode {
   }
 
   static AssetAccountViewMode fromStorage(String? value) {
+    // 默认按银行卡／平台分区：用户看到的是几张卡和几个平台，
+    // 资产性质由 AssetClass 表达，不再靠账户类型分区。
     return AssetAccountViewMode.values.firstWhere(
       (mode) => mode.name == value,
-      orElse: () => AssetAccountViewMode.type,
+      orElse: () => AssetAccountViewMode.group,
     );
   }
 }

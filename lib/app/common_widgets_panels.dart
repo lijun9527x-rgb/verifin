@@ -13,6 +13,8 @@ class AccountSectionCard extends StatelessWidget {
     this.sectionDragIndex,
     this.sectionDragImmediate = false,
     this.onToggleCollapsed,
+    this.onTitleTap,
+    this.emptyHint,
     this.onReorderAccounts,
     this.onAccountTap,
     this.hapticsEnabled = true,
@@ -26,6 +28,12 @@ class AccountSectionCard extends StatelessWidget {
   final int? sectionDragIndex;
   final bool sectionDragImmediate;
   final VoidCallback? onToggleCollapsed;
+
+  /// 标题点击的独立入口（如进入该银行卡／平台详情）。为空时回落折叠。
+  final VoidCallback? onTitleTap;
+
+  /// 分区内没有任何资产时的短提示（如「添加资产」），不展示空列表。
+  final String? emptyHint;
   final ReorderCallback? onReorderAccounts;
   final ValueChanged<Account>? onAccountTap;
   final bool hapticsEnabled;
@@ -55,14 +63,21 @@ class AccountSectionCard extends StatelessWidget {
         children: <Widget>[
           InkWell(
             borderRadius: BorderRadius.circular(veriRadiusSm),
-            onTap: onToggleCollapsed == null
-                ? null
-                : () {
-                    if (hapticsEnabled) {
-                      HapticFeedback.selectionClick();
-                    }
-                    onToggleCollapsed?.call();
-                  },
+            onTap: switch ((onTitleTap, onToggleCollapsed)) {
+              (final VoidCallback tap, _) => () {
+                if (hapticsEnabled) {
+                  HapticFeedback.selectionClick();
+                }
+                tap();
+              },
+              (_, final VoidCallback toggle) => () {
+                if (hapticsEnabled) {
+                  HapticFeedback.selectionClick();
+                }
+                toggle();
+              },
+              _ => null,
+            },
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 2),
               child: Row(
@@ -91,18 +106,7 @@ class AccountSectionCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 4),
-                  AnimatedRotation(
-                    turns: collapsed ? 0 : 0.5,
-                    duration: const Duration(milliseconds: 180),
-                    curve: Curves.easeOutCubic,
-                    child: Icon(
-                      Icons.expand_more,
-                      size: 18,
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.onSurface.withValues(alpha: 0.42),
-                    ),
-                  ),
+                  _buildCollapseToggle(context),
                 ],
               ),
             ),
@@ -126,69 +130,116 @@ class AccountSectionCard extends StatelessWidget {
                     key: const ValueKey<String>('expanded'),
                     children: <Widget>[
                       const SizedBox(height: 10),
-                      ReorderableListView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        buildDefaultDragHandles: false,
-                        proxyDecorator: (child, _, _) => Material(
-                          color: Colors.transparent,
-                          child: DecoratedBox(
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).colorScheme.surface,
-                              borderRadius: BorderRadius.circular(veriRadiusSm),
-                              boxShadow: <BoxShadow>[
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.12),
-                                  blurRadius: 14,
-                                  offset: const Offset(0, 8),
+                      if (accounts.isEmpty)
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            emptyHint ?? '',
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  color: Theme.of(context).colorScheme.onSurface
+                                      .withValues(alpha: 0.52),
                                 ),
-                              ],
-                            ),
-                            child: child,
                           ),
+                        )
+                      else
+                        ReorderableListView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          buildDefaultDragHandles: false,
+                          proxyDecorator: (child, _, _) => Material(
+                            color: Colors.transparent,
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).colorScheme.surface,
+                                borderRadius: BorderRadius.circular(
+                                  veriRadiusSm,
+                                ),
+                                boxShadow: <BoxShadow>[
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.12),
+                                    blurRadius: 14,
+                                    offset: const Offset(0, 8),
+                                  ),
+                                ],
+                              ),
+                              child: child,
+                            ),
+                          ),
+                          itemCount: accounts.length,
+                          onReorderStart: (_) {
+                            if (hapticsEnabled) {
+                              HapticFeedback.selectionClick();
+                            }
+                          },
+                          onReorderEnd: (_) {
+                            if (hapticsEnabled) {
+                              HapticFeedback.selectionClick();
+                            }
+                          },
+                          onReorderItem: (oldIndex, newIndex) {
+                            if (hapticsEnabled) {
+                              HapticFeedback.selectionClick();
+                            }
+                            (onReorderAccounts ?? (_, _) {})(
+                              oldIndex,
+                              newIndex,
+                            );
+                          },
+                          itemBuilder: (context, index) {
+                            final account = accounts[index];
+                            final row = _AccountRow(
+                              key: ValueKey<String>('account_${account.id}'),
+                              account: account,
+                              balance: balances[account] ?? 0,
+                              onTap: onAccountTap == null
+                                  ? null
+                                  : () => onAccountTap!(account),
+                            );
+                            if (onReorderAccounts == null) {
+                              return row;
+                            }
+                            return ReorderableDelayedDragStartListener(
+                              key: ValueKey<String>(
+                                'account_drag_${account.id}',
+                              ),
+                              index: index,
+                              child: row,
+                            );
+                          },
                         ),
-                        itemCount: accounts.length,
-                        onReorderStart: (_) {
-                          if (hapticsEnabled) {
-                            HapticFeedback.selectionClick();
-                          }
-                        },
-                        onReorderEnd: (_) {
-                          if (hapticsEnabled) {
-                            HapticFeedback.selectionClick();
-                          }
-                        },
-                        onReorderItem: (oldIndex, newIndex) {
-                          if (hapticsEnabled) {
-                            HapticFeedback.selectionClick();
-                          }
-                          (onReorderAccounts ?? (_, _) {})(oldIndex, newIndex);
-                        },
-                        itemBuilder: (context, index) {
-                          final account = accounts[index];
-                          final row = _AccountRow(
-                            key: ValueKey<String>('account_${account.id}'),
-                            account: account,
-                            balance: balances[account] ?? 0,
-                            onTap: onAccountTap == null
-                                ? null
-                                : () => onAccountTap!(account),
-                          );
-                          if (onReorderAccounts == null) {
-                            return row;
-                          }
-                          return ReorderableDelayedDragStartListener(
-                            key: ValueKey<String>('account_drag_${account.id}'),
-                            index: index,
-                            child: row,
-                          );
-                        },
-                      ),
                     ],
                   ),
           ),
         ],
       ),
+    );
+  }
+
+  /// 标题已承担进入详情的入口时，折叠改由右侧箭头独立承担，避免两种导航挤在一起。
+  Widget _buildCollapseToggle(BuildContext context) {
+    final icon = AnimatedRotation(
+      turns: collapsed ? 0 : 0.5,
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOutCubic,
+      child: Icon(
+        Icons.expand_more,
+        size: 18,
+        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.42),
+      ),
+    );
+    if (onTitleTap == null || onToggleCollapsed == null) {
+      return icon;
+    }
+    return InkWell(
+      borderRadius: BorderRadius.circular(veriRadiusSm),
+      onTap: () {
+        if (hapticsEnabled) {
+          HapticFeedback.selectionClick();
+        }
+        onToggleCollapsed?.call();
+      },
+      child: Padding(padding: const EdgeInsets.all(4), child: icon),
     );
   }
 

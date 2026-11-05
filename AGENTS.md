@@ -240,7 +240,7 @@ dart run scripts/widget_previews.dart
 - 自定义预算周期只改变预算体系口径，统计报表仍按自然月。默认预算使用哨兵键，单月覆盖优先于默认值。
 - 「不计入预算」标记（借款、垫付等）只脱离**预算**口径。预算取数一律走 `ledger_math.dart` 的 `budgetExpenseTotal` / `countsTowardBudget`（预算总览、首页与看板预算卡、按日预算、预算趋势、桌面小组件预算、AI `budgetStatus`）；收支统计、账户余额、报表与分类统计仍走 `sumByType` / `signedAmount`，**不读该标记**。新增预算取数不要在调用点手写过滤条件。
 
-- 月度资产快照按账本和月份保存于 SQLite `asset_month_snapshots`；编辑冻结记录不得改写交易或账户余额。银行卡/平台复用 `AccountGroup`，资产性质用 `Account.assetClass`，不可与账户能力类型混用。参见 `docs/dev/monthly-assets.md`。
+- 月度资产快照按账本和月份保存于 SQLite `asset_month_snapshots`；编辑冻结记录不得改写交易或账户余额，补入遗漏资产只新增条目、不覆盖已核对金额。银行卡／平台容器复用 `AccountGroup`（容器只做汇总，不另存余额），资产明细复用 `Account`，资产性质用 `Account.assetClass`（含货币基金，枚举顺序即选择顺序），不可与只表达卡号/额度能力的 `Account.type` 混用；资产页默认按容器分区，空容器也要保留入口，界面统一使用「资产」「银行卡／平台」措辞。外币资产的手填本位币金额 `Account.baseValuation` 只在 `accountBalancesInBase` 一条路径上覆盖汇率折算（不查率、不算过期），它与月度快照的 `baseBalance` 是两份独立数据，不得互相回写。参见 `docs/dev/monthly-assets.md` 与 `docs/dev/known-limitations.md` L16。
 - 新支出统一应用指定账户（`defaultAccountIds`）；历史编辑、收入、转账、退款与系统余额调整不重定向。首页预算面板展示各分类预算，总预算仍在预算总览中管理。
 
 ## Never 规则

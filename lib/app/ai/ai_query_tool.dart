@@ -933,7 +933,7 @@ class CompareTool extends AiQueryTool {
   }
 }
 
-/// 账户一览：各账户名称、币种与余额；总资产缺汇率时明确说明。
+/// 账户一览：各账户名称、币种与余额；外币总额使用手填本位币金额。
 class AccountsOverviewTool extends AiQueryTool {
   const AccountsOverviewTool();
 
@@ -1015,7 +1015,7 @@ class NetWorthTool extends AiQueryTool {
   String get name => 'netWorth';
 
   @override
-  String get description => '总资产、总负债与净资产（本位币口径；缺汇率时不给部分和）。';
+  String get description => '总资产、总负债与净资产（外币使用手填本位币金额，未填写不给部分和）。';
 
   @override
   AiToolSchema get schema => const AiToolSchema();
@@ -1038,7 +1038,7 @@ class NetWorthTool extends AiQueryTool {
       return AiToolResult(
         summary: l10n.aiMissingRatesNetWorth(
           converted.missingCurrencyCodes.join(l10n.aiSepEnum),
-          l10n.currencyRatesTitle,
+          l10n.tabAssets,
         ),
       );
     }

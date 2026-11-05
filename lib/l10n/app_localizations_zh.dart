@@ -906,7 +906,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get coverDeepBlue => '深蓝渐层';
 
   @override
-  String get assetsUngrouped => '未分组';
+  String get assetsUngrouped => '未归类';
 
   @override
   String get netAssets => '净资产';
@@ -935,17 +935,17 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get assetsEmptyTitle => '还没有资产账户';
+  String get assetsEmptyTitle => '还没有资产';
 
   @override
-  String get assetsEmptyDesc => '请先点击右上角添加资产，之后可以在这里按类型或分组查看资产。';
+  String get assetsEmptyDesc => '先添加银行卡或平台，再往里面添加实际持有的资产。';
 
   @override
-  String get assetsEmptyAddAction => '添加第一个账户';
+  String get assetsEmptyAddAction => '添加银行卡／平台';
 
   @override
   String hiddenAccountsCount(int count) {
-    return '$count个隐藏账户';
+    return '$count项隐藏资产';
   }
 
   @override
@@ -955,10 +955,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get assetDisplaySettingsTitle => '资产显示设置';
 
   @override
-  String get assetViewModeLabel => '账户分区方式';
+  String get assetViewModeLabel => '资产分区方式';
 
   @override
-  String get assetOrderHint => '拖动分区手柄或长按账户调整顺序';
+  String get assetOrderHint => '拖动分区手柄或长按资产调整顺序';
 
   @override
   String get coverUseOnline => '使用线上图片';
@@ -985,38 +985,38 @@ class AppLocalizationsZh extends AppLocalizations {
   String get coverGenerating => '正在生成背景图…';
 
   @override
-  String get accountAdd => '添加账户';
+  String get accountAdd => '添加资产';
 
   @override
-  String get groupManage => '管理分组';
+  String get groupManage => '管理银行卡／平台';
 
   @override
   String get sortLabel => '排序';
 
   @override
-  String get hiddenAccountsTitle => '隐藏账户';
+  String get hiddenAccountsTitle => '隐藏资产';
 
   @override
-  String get hiddenAccountsEmptyTitle => '暂无隐藏账户';
+  String get hiddenAccountsEmptyTitle => '暂无隐藏资产';
 
   @override
-  String get hiddenAccountsEmptyDesc => '隐藏账户会在这里集中展示。';
+  String get hiddenAccountsEmptyDesc => '隐藏资产会在这里集中展示。';
 
   @override
-  String get accountGroupsTitle => '账户分组';
+  String get accountGroupsTitle => '银行卡／平台';
 
   @override
-  String get groupAdd => '新增分组';
+  String get groupAdd => '添加银行卡／平台';
 
   @override
-  String get groupsEmptyTitle => '还没有账户分组';
+  String get groupsEmptyTitle => '还没有银行卡／平台';
 
   @override
-  String get groupsEmptyDesc => '点击右上角加号创建分组，用来整理不同账户。';
+  String get groupsEmptyDesc => '添加银行卡或平台，用来汇总里面的资产。';
 
   @override
   String accountsCount(int count) {
-    return '$count个账户';
+    return '$count项资产';
   }
 
   @override
@@ -1026,35 +1026,35 @@ class AppLocalizationsZh extends AppLocalizations {
   String get commonIcon => '图标';
 
   @override
-  String get groupRenameTitle => '重命名分组';
+  String get groupRenameTitle => '重命名银行卡／平台';
 
   @override
-  String get groupNameLabel => '分组名称';
+  String get groupNameLabel => '名称';
 
   @override
-  String get groupDeleteTitle => '删除分组';
+  String get groupDeleteTitle => '删除银行卡／平台';
 
   @override
   String groupDeleteMessage(String name) {
-    return '确定删除“$name”分组吗？';
+    return '确定删除“$name”吗？';
   }
 
   @override
   String groupDeleteInUseMessage(String name, int count) {
-    return '删除“$name”分组后，其中 $count 个账户将移到“未分组”。账户和交易不会被删除。';
+    return '删除“$name”后，其中 $count 项资产将移到“未归类”。资产和交易不会被删除。';
   }
 
   @override
-  String get accountIconLabel => '账户图标';
+  String get accountIconLabel => '资产图标';
 
   @override
   String get accountTypeLabel => '账户类型';
 
   @override
-  String get accountNameLabel => '账户名称';
+  String get accountNameLabel => '资产名称';
 
   @override
-  String get accountNameRequired => '账户名称必填';
+  String get accountNameRequired => '资产名称必填';
 
   @override
   String get cardLast4Label => '卡号后四位';
@@ -1093,19 +1093,19 @@ class AppLocalizationsZh extends AppLocalizations {
   String get accountSectionDanger => '危险操作';
 
   @override
-  String get accountBalanceLabel => '账户余额';
+  String get accountBalanceLabel => '资产余额';
 
   @override
-  String get accountNoteLabel => '账户备注';
+  String get accountNoteLabel => '资产备注';
 
   @override
-  String get accountGroupLabel => '账户分组';
+  String get accountGroupLabel => '所属银行卡／平台';
 
   @override
   String get accountTypePickerTitle => '选择账户类型';
 
   @override
-  String get accountGroupPickerTitle => '选择账户分组';
+  String get accountGroupPickerTitle => '选择所属银行卡／平台';
 
   @override
   String get balanceAdjustTooltip => '调整余额';
@@ -1137,7 +1137,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get noEntriesTitle => '暂无交易';
 
   @override
-  String get accountNoEntriesDesc => '该账户还没有交易记录。';
+  String get accountNoEntriesDesc => '该资产还没有交易记录。';
 
   @override
   String accountEntriesTitle(String name) {
@@ -1220,9 +1220,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get commonNoneShort => '无';
-
-  @override
-  String get commonGroup => '分组';
 
   @override
   String get accountDelete => '删除账户';
@@ -4615,16 +4612,16 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String assetValuationMissing(int count) {
-    return '有 $count 个账户待设置汇率';
+    return '有 $count 项资产待填写金额';
   }
 
   @override
   String assetValuationMissingDesc(String currencies) {
-    return '缺少 $currencies 对本位币的汇率，暂不显示不完整的资产总额。';
+    return '请填写 $currencies 对应的本位币金额。';
   }
 
   @override
-  String get assetTrendMissingRate => '还没有可用于折算的历史汇率，设置今天或更早的汇率后显示资产走势。';
+  String get assetTrendMissingRate => '暂无月度资产记录';
 
   @override
   String assetTrendPartialMissing(String currencies, String months) {
@@ -4872,12 +4869,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String aiTotalMissingRateLine(String codes) {
-    return '合计因缺汇率无法给出（缺 $codes）';
+    return '合计暂不可用，$codes 资产未填写对应本位币金额';
   }
 
   @override
   String aiMissingRatesNetWorth(String codes, String page) {
-    return '有账户缺少汇率（$codes），无法给出总资产与净资产；请先在「$page」补齐。';
+    return '$codes 资产未填写对应本位币金额，请在$page中补齐。';
   }
 
   @override
@@ -4972,25 +4969,25 @@ class AppLocalizationsZh extends AppLocalizations {
   String get assetClassFixed => '定期存款';
 
   @override
+  String get assetClassMoneyMarket => '货币基金';
+
+  @override
   String get assetClassBond => '债券基金';
 
   @override
   String get assetClassEquity => '股票类基金';
 
   @override
-  String get assetClassForeignFixed => '外币定期';
+  String get assetClassForeignDemand => '外币活期';
 
   @override
-  String get assetClassForeignDemand => '外币活期';
+  String get assetClassForeignFixed => '外币定期';
 
   @override
   String get assetClassOther => '其他资产';
 
   @override
   String get assetMonthlyTitle => '月度资产对照';
-
-  @override
-  String get assetMonthlyDescription => '按账户记录余额，按资产类别或银行卡汇总';
 
   @override
   String get assetViewCategory => '按资产类别';
@@ -5055,4 +5052,32 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get assetSnapshotManualValue => '对应人民币金额';
+
+  @override
+  String get assetSnapshotAddHolding => '添加资产到本月';
+
+  @override
+  String get assetSnapshotAddHoldingTitle => '选择要补入的资产';
+
+  @override
+  String get assetSnapshotAddHoldingEmpty => '当前资产都已在本月记录中';
+
+  @override
+  String accountMarketValueLabel(String code) {
+    return '当前市值（$code）';
+  }
+
+  @override
+  String get accountAdvancedSection => '卡片与信用（选填）';
+
+  @override
+  String get commonHelp => '帮助';
+
+  @override
+  String groupRowActions(String name) {
+    return '$name操作';
+  }
+
+  @override
+  String get assetHistoryMissing => '未保存的月份留空';
 }

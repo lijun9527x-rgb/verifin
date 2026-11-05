@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 
 import '../app/account_icon_assets.dart';
 import '../app/app_theme.dart';
+import '../app/asset_snapshot_math.dart';
 import '../app/avatar_picker.dart';
 import '../app/chart_painters.dart';
 import '../app/common_widgets.dart';
@@ -25,7 +26,6 @@ import 'sheets.dart';
 import 'account_detail_page.dart';
 import 'account_asset_class_field.dart';
 import 'asset_monthly_page.dart';
-import 'currency_rates_page.dart';
 
 part 'account_group_pages.dart';
 part 'add_account_page.dart';
@@ -100,15 +100,10 @@ class _AssetsPageState extends State<AssetsPage> {
               .fold<double>(0, (sum, value) => sum + value)
         : null;
     final assetTrend = _baseCurrencyAssetTrend(
-      accounts: valuedAccounts,
-      entries: controller.entries,
-      convert: ({required amount, required currencyCode, required date}) =>
-          controller.convertAmount(
-            amount: amount,
-            sourceCurrencyCode: currencyCode,
-            targetCurrencyCode: baseCurrencyCode,
-            date: date,
-          ),
+      snapshots: controller.assetSnapshots,
+      bookId: controller.activeBook.id,
+      baseCurrencyCode: baseCurrencyCode,
+      currentTotal: valuation.completeTotal,
     );
     final hasAssetCover = controller.assetCoverUrl.isNotEmpty;
     final assetCardTextColor = hasAssetCover
@@ -124,7 +119,7 @@ class _AssetsPageState extends State<AssetsPage> {
     final visibleGroups = <AccountGroup>[
       ...groups,
       AccountGroup(
-        id: 'ungrouped',
+        id: ungroupedAccountGroupId,
         bookId: controller.activeBook.id,
         name: AppLocalizations.of(context).assetsUngrouped,
         sortOrder: 999,
@@ -167,8 +162,14 @@ class _AssetsPageState extends State<AssetsPage> {
                 .toList(),
       idOf: (section) => section.id,
     );
+    // 空的银行卡／平台仍要出现，否则刚建好的容器会从首页消失、没有入口继续添加资产。
     final visibleAssetSections = assetSections
-        .where((section) => section.accounts.isNotEmpty)
+        .where(
+          (section) =>
+              section.accounts.isNotEmpty ||
+              (viewMode == AssetAccountViewMode.group &&
+                  section.id != ungroupedAccountGroupId),
+        )
         .toList(growable: false);
     // 单币种账本按偏好隐藏单位时整条副标题省略，不留「本位币 」这种残句。
     final baseUnit = optionalCurrencyUnit(baseCurrencyCode);
@@ -183,10 +184,20 @@ class _AssetsPageState extends State<AssetsPage> {
                 : AppLocalizations.of(
                     context,
                   ).baseCurrencyAmountLabel(baseUnit),
-            trailing: AnchoredMenuButton(
-              icon: Icons.add,
-              tooltip: AppLocalizations.of(context).assetsActions,
-              entries: _assetActionMenuEntries(context),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                HeaderAction(
+                  icon: Icons.add,
+                  tooltip: AppLocalizations.of(context).accountAdd,
+                  onPressed: () => _openAddAccount(context),
+                ),
+                AnchoredMenuButton(
+                  icon: Icons.more_horiz,
+                  tooltip: AppLocalizations.of(context).assetsActions,
+                  entries: _assetActionMenuEntries(context),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 10),
@@ -199,9 +210,6 @@ class _AssetsPageState extends State<AssetsPage> {
               contentPadding: EdgeInsets.zero,
               leading: const Icon(Icons.table_chart_outlined),
               title: Text(AppLocalizations.of(context).assetMonthlyTitle),
-              subtitle: Text(
-                AppLocalizations.of(context).assetMonthlyDescription,
-              ),
               trailing: const Icon(Icons.chevron_right),
             ),
           ),
@@ -331,7 +339,7 @@ class _AssetsPageState extends State<AssetsPage> {
                                 ),
                                 const SizedBox(height: 4),
                                 TextButton(
-                                  onPressed: () => _openCurrencyRates(context),
+                                  onPressed: () => _openAssetHistory(context),
                                   style: TextButton.styleFrom(
                                     foregroundColor: assetCardTextColor,
                                     visualDensity: VisualDensity.compact,
@@ -342,7 +350,7 @@ class _AssetsPageState extends State<AssetsPage> {
                                   child: Text(
                                     AppLocalizations.of(
                                       context,
-                                    ).exchangeRateSetAction,
+                                    ).assetSnapshotEdit,
                                   ),
                                 ),
                               ],
@@ -386,24 +394,13 @@ class _AssetsPageState extends State<AssetsPage> {
                               child: Text(
                                 AppLocalizations.of(
                                   context,
-                                ).assetTrendPartialMissing(
-                                  (assetTrend.missingCurrencyCodes.toList()
-                                        ..sort())
-                                      .join(', '),
-                                  assetTrend.missingIndexes
-                                      .map(
-                                        (index) => AppLocalizations.of(
-                                          context,
-                                        ).monthNumber(index + 1),
-                                      )
-                                      .join('、'),
-                                ),
+                                ).assetHistoryMissing,
                                 style: Theme.of(context).textTheme.bodySmall
                                     ?.copyWith(color: assetCardMutedColor),
                               ),
                             ),
                             TextButton(
-                              onPressed: () => _openCurrencyRates(context),
+                              onPressed: () => _openAssetHistory(context),
                               style: TextButton.styleFrom(
                                 foregroundColor: assetCardTextColor,
                                 visualDensity: VisualDensity.compact,
@@ -412,9 +409,7 @@ class _AssetsPageState extends State<AssetsPage> {
                                 ),
                               ),
                               child: Text(
-                                AppLocalizations.of(
-                                  context,
-                                ).exchangeRateSetAction,
+                                AppLocalizations.of(context).assetSnapshotEdit,
                               ),
                             ),
                           ],
@@ -429,10 +424,10 @@ class _AssetsPageState extends State<AssetsPage> {
           const SizedBox(height: 12),
           if (!valuation.isComplete) ...<Widget>[
             VeriCard(
-              // 只告知「缺汇率」而不给入口，用户没有任何可操作的去处。
+              // 缺少手填金额时进入银行卡／平台管理，继续核对资产。
               onTap: () => Navigator.of(context).push<void>(
                 MaterialPageRoute<void>(
-                  builder: (_) => const CurrencyRatesPage(),
+                  builder: (_) => const AccountGroupsPage(),
                 ),
               ),
               // 点击区在外层卡片，提示本体不再自带点击。
@@ -450,18 +445,25 @@ class _AssetsPageState extends State<AssetsPage> {
                 title: AppLocalizations.of(context).assetsEmptyTitle,
                 description: AppLocalizations.of(context).assetsEmptyDesc,
                 // 空状态只说明原因不给出口，用户会卡在死路上。
-                action: FilledButton.icon(
-                  onPressed: () => unawaited(
-                    Navigator.of(context).push<void>(
-                      MaterialPageRoute<void>(
-                        builder: (context) => const AddAccountPage(),
+                // 首次使用的主要动作是建容器，其次是直接添加资产。
+                action: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    FilledButton.icon(
+                      onPressed: () => _openAddAccountGroup(context),
+                      icon: const Icon(
+                        Icons.account_balance_outlined,
+                        size: 18,
+                      ),
+                      label: Text(
+                        AppLocalizations.of(context).assetsEmptyAddAction,
                       ),
                     ),
-                  ),
-                  icon: const Icon(Icons.add, size: 18),
-                  label: Text(
-                    AppLocalizations.of(context).assetsEmptyAddAction,
-                  ),
+                    TextButton(
+                      onPressed: () => _openAddAccount(context),
+                      child: Text(AppLocalizations.of(context).accountAdd),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -491,6 +493,20 @@ class _AssetsPageState extends State<AssetsPage> {
                         mode: viewMode,
                         sectionId: section.id,
                       ),
+                  // 分组即银行卡／平台，点标题进入容器继续添加或修改资产；
+                  // 「未归类」不是真实容器，不提供详情。
+                  onTitleTap:
+                      viewMode == AssetAccountViewMode.group &&
+                          section.id != ungroupedAccountGroupId
+                      ? () {
+                          controller.toggleAssetSectionCollapsed(
+                            mode: viewMode,
+                            sectionId: section.id,
+                          );
+                          _openGroupDetail(context, section.id);
+                        }
+                      : null,
+                  emptyHint: AppLocalizations.of(context).accountAdd,
                   onAccountTap: (account) {
                     Navigator.of(context).push<void>(
                       MaterialPageRoute<void>(
@@ -551,6 +567,28 @@ class _AssetsPageState extends State<AssetsPage> {
     );
   }
 
+  void _openAddAccount(BuildContext context) {
+    unawaited(
+      Navigator.of(context).push<void>(
+        MaterialPageRoute<void>(builder: (context) => const AddAccountPage()),
+      ),
+    );
+  }
+
+  void _openAddAccountGroup(BuildContext context) {
+    unawaited(_showAccountGroupNameDialog(context));
+  }
+
+  void _openGroupDetail(BuildContext context, String groupId) {
+    unawaited(
+      Navigator.of(context).push<void>(
+        MaterialPageRoute<void>(
+          builder: (context) => AccountGroupDetailPage(groupId: groupId),
+        ),
+      ),
+    );
+  }
+
   void _openDisplaySettings(BuildContext context) {
     unawaited(
       Navigator.of(context).push<void>(
@@ -565,16 +603,16 @@ class _AssetsPageState extends State<AssetsPage> {
     final l10n = AppLocalizations.of(context);
     return <AnchoredMenuEntry>[
       AnchoredMenuItem(
+        id: 'asset_add_group',
+        icon: Icons.account_balance_outlined,
+        title: l10n.groupAdd,
+        onPressed: () => _openAddAccountGroup(context),
+      ),
+      AnchoredMenuItem(
         id: 'asset_add_account',
         icon: Icons.add_card_outlined,
         title: l10n.accountAdd,
-        onPressed: () => unawaited(
-          Navigator.of(context).push<void>(
-            MaterialPageRoute<void>(
-              builder: (context) => const AddAccountPage(),
-            ),
-          ),
-        ),
+        onPressed: () => _openAddAccount(context),
       ),
       AnchoredMenuItem(
         id: 'asset_manage_groups',
@@ -598,10 +636,10 @@ class _AssetsPageState extends State<AssetsPage> {
   }
 }
 
-void _openCurrencyRates(BuildContext context) {
+void _openAssetHistory(BuildContext context) {
   unawaited(
     Navigator.of(context).push<void>(
-      MaterialPageRoute<void>(builder: (_) => const CurrencyRatesPage()),
+      MaterialPageRoute<void>(builder: (_) => const AssetMonthlyPage()),
     ),
   );
 }
@@ -618,73 +656,32 @@ class _AssetAccountSection {
   final List<Account> accounts;
 }
 
-typedef _AssetCurrencyConverter =
-    CurrencyConversionResult Function({
-      required num amount,
-      required String currencyCode,
-      required DateTime date,
-    });
-
 class _AssetTrendData {
-  const _AssetTrendData({
-    required this.values,
-    required this.missingIndexes,
-    required this.missingCurrencyCodes,
-  });
-
+  const _AssetTrendData({required this.values, required this.missingIndexes});
   final List<double> values;
   final Set<int> missingIndexes;
-  final Set<String> missingCurrencyCodes;
-
   bool get hasNoData => missingIndexes.length == values.length;
 }
 
 _AssetTrendData _baseCurrencyAssetTrend({
-  required List<Account> accounts,
-  required List<LedgerEntry> entries,
-  required _AssetCurrencyConverter convert,
+  required List<AssetMonthSnapshot> snapshots,
+  required String bookId,
+  required String baseCurrencyCode,
+  required double? currentTotal,
 }) {
-  final nativeSeries = accountMonthlyBalanceSeriesBatch(accounts, entries);
-  final now = DateTime.now();
-  final result = List<double>.filled(12, 0);
-  final missingIndexes = <int>{};
-  final missingCurrencyCodes = <String>{};
-  for (var monthIndex = 0; monthIndex < 12; monthIndex += 1) {
-    final monthEnd = DateTime(now.year, monthIndex + 2, 0);
-    var total = 0.0;
-    var complete = true;
-    for (final account in accounts) {
-      final nativeBalance = nativeSeries[account.id]![monthIndex];
-      // 零余额不需要汇率：任何币种的 0 折算后仍是 0。这里与
-      // convertAccountBalancesToBase 的零余额口径保持一致，避免新加的空外币账户
-      // 把整条历史走势误判为缺率。
-      if (isZeroCurrencyAmount(nativeBalance, account.currencyCode)) {
-        continue;
-      }
-      final conversion = convert(
-        amount: nativeBalance,
-        currencyCode: account.currencyCode,
-        date: monthEnd,
-      );
-      if (conversion is ConvertedCurrencyAmount) {
-        total += conversion.amount;
-      } else {
-        complete = false;
-        if (conversion is MissingCurrencyRate) {
-          missingCurrencyCodes.addAll(conversion.currencyCodes);
-        }
-      }
-    }
-    if (complete) {
-      result[monthIndex] = total;
-    } else {
-      missingIndexes.add(monthIndex);
-    }
-  }
+  final series = assetMonthlyAmountSeries(
+    snapshots: snapshots,
+    bookId: bookId,
+    baseCurrencyCode: baseCurrencyCode,
+    now: DateTime.now(),
+    currentTotal: currentTotal,
+  );
   return _AssetTrendData(
-    values: result,
-    missingIndexes: missingIndexes,
-    missingCurrencyCodes: missingCurrencyCodes,
+    values: [for (final amount in series) amount ?? 0],
+    missingIndexes: {
+      for (var i = 0; i < series.length; i++)
+        if (series[i] == null) i,
+    },
   );
 }
 
@@ -724,7 +721,7 @@ class _AssetCoverPreset {
 }
 
 String _effectiveGroupId(Account account) {
-  return account.groupId ?? 'ungrouped';
+  return account.groupId ?? ungroupedAccountGroupId;
 }
 
 List<Account> _sortedAccounts(Iterable<Account> accounts) {

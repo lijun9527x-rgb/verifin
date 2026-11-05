@@ -84,6 +84,7 @@ void main() {
     cardLast4: '6789',
     cardNumber: '6222 1234 5678 6789',
     cardLast4Follows: true,
+    baseValuation: 6123.45,
     creditLimit: 8000.5,
     statementDay: 5,
     dueDay: 25,

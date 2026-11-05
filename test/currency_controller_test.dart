@@ -375,7 +375,7 @@ void main() {
     expect(signedAmount(transfer), 0);
   });
 
-  test('混合币种资产缺汇率时不返回部分总额，补齐后按本位币估值', () async {
+  test('混合币种资产缺手填金额时不给部分总额，汇率不替代手填金额', () async {
     final controller = await controllerWith(InMemoryLedgerRepository());
     final bookId = controller.activeBook.id;
     const cnyAccount = Account(
@@ -419,6 +419,11 @@ void main() {
         effectiveDate: DateTime(2020),
         rateToBase: 7.2,
       ),
+      isTrue,
+    );
+    expect(controller.accountBalancesInBase().isComplete, isFalse);
+    expect(
+      await controller.saveAccountDraft(usdAccount.copyWith(baseValuation: 72)),
       isTrue,
     );
     final complete = controller.accountBalancesInBase();

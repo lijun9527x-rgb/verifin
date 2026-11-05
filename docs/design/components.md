@@ -82,13 +82,13 @@ Veri Fin 已有的**可复用 widget / 弹窗 helper / 对话框 / 纯函数**�
 
 | 名称 | 类型 | 位置 | 用途 / 关键点 |
 |---|---|---|---|
-| `showAccountPickerSheet` | Sheet 函数 | `sheets.dart` | 账户选择弹窗（图标+余额+卡号后四位）；**按当前资产视图模式分区**（类型视图=按 `AccountType`，分组视图=按分组+未分组，分区/区内顺序复用 `sortedAssetSections`/`sortedAccountsForAssetSection`，随备份还原）；`noneLabel` 非空时列首加「无账户」→ 返回 **id 为空串哨兵 `Account`**；`allLabel` 非空时列首加「全部」→ 返回 **id 为 `accountPickerAllId` 哨兵 `Account`**（筛选场景）；取消返回 `null` |
+| `showAccountPickerSheet` | Sheet 函数 | `sheets.dart` | 账户选择弹窗（图标+余额+卡号后四位）；**按当前资产视图模式分区**（类型视图=按 `AccountType`，默认的银行卡／平台视图按容器+未归类，分区/区内顺序复用 `sortedAssetSections`/`sortedAccountsForAssetSection`，随备份还原）；`noneLabel` 非空时列首加「无账户」→ 返回 **id 为空串哨兵 `Account`**；`allLabel` 非空时列首加「全部」→ 返回 **id 为 `accountPickerAllId` 哨兵 `Account`**（筛选场景）；取消返回 `null` |
 | `showAccountIconSheet` | Sheet 函数 | `sheets.dart` + `account_icon_picker.dart` | 账户图标选择；按通用、支付、信用、投资理财、卡组织、跨境与数字账户、银行分组网格浏览，支持中英文名、简称和机构缩写搜索 |
 | `confirmDeleteAccount` | Dialog 函数 | `sheets.dart` | 删账户流程（有流水→隐藏/删除三选；级联提示停用周期规则）；返回命令是否完成，由带 Guard 的调用页统一退出 |
 | `CardNumberFields` | Widget | `common_widgets.dart` | 完整卡号 + 后四位输入组，含「后四位跟随卡号」开关（信用卡/储蓄卡录入用）；**受控**：`follows`/`onFollowsChanged` 由调用方持久化（`Account.cardLast4Follows`），组件不自行反推 |
 | `showCardNumberDialog` | Dialog 函数 | `sheets.dart` | 编辑完整卡号+后四位+跟随开关，返回 `({number, last4, follows})?`（内部用 `CardNumberFields`，后四位以 `cardLast4Of` 归一化） |
 | `CreditRepaymentPage` | 页面 Widget | `credit_repayment_page.dart` | 信用卡/信用账户还款页；预填欠款、扣款账户可选/可代还，落一笔转账 |
-| `AccountSectionCard` | Widget | `common_widgets.dart` | 资产页账户分区卡（可折叠 + 分区合计）；普通资产页折叠状态由 Controller 按账本/视图模式持久化，设置页可在草稿中调整；同时服务类型、文件夹分组和隐藏账户等分区，拖拽只由 `sectionDragIndex != null` 开启，`sectionDragImmediate` 控制即时/延迟拖拽 |
+| `AccountSectionCard` | Widget | `common_widgets.dart` | 资产页分区卡（可折叠 + 分区合计）；普通资产页折叠状态由 Controller 按账本/视图模式持久化，设置页可在草稿中调整；同时服务类型、银行卡／平台分组和隐藏资产等分区，拖拽只由 `sectionDragIndex != null` 开启，`sectionDragImmediate` 控制即时/延迟拖拽。`onTitleTap` 为空时标题点击即折叠；传入后标题用于进入容器详情，折叠改由右侧箭头独立承担。`emptyHint` 在分区内没有资产时替代空列表展示短提示（空的银行卡／平台靠它保留入口） |
 | `accountBalanceColor` | 纯函数 | `common_widgets.dart` | **账户余额上色**（不计入资产=弱化，负=红，正=青绿） |
 | `accountDisplayName` | 纯函数 | `model_lookup.dart` | 按 id 取账户名，空 id→noneLabel（**展示层用它**，避免误回退首个账户） |
 | `accountById` | 纯函数 | `model_lookup.dart` | 按 id 取账户（会回退首个，展示层慎用） |
@@ -117,7 +117,7 @@ Veri Fin 已有的**可复用 widget / 弹窗 helper / 对话框 / 纯函数**�
 | `normalizeCurrencyAmount` / `formatCurrencyNumber` / `formatMoney` / `formatUserMoney` / `formatSignedUserMoney` / `formatRateValue` / `formatRateValueExact` | 纯函数 | `currency_math.dart` | 按币种 minor unit 规整与格式化；**用户界面一律用 `formatUserMoney` 族**，它自动遵循符号/代码与单币种隐藏偏好；`formatMoney` 的 `display` 默认 `MoneyCodeDisplay.code`（恒带单位），界面金额不得吃这个默认值——AI 工具摘要也已改走 `AiToolContext.currencyDisplay`（见族 10）。`formatRateValue` 是 4/6/8 位自适应的界面文本，CSV 等精确往返必须用 `formatRateValueExact` |
 | `textCurrencyUnitHidden` / `optionalCurrencyUnit` | getter / 纯函数 | `currency_math.dart` | **单位文字的闸门读取入口**：闸门是 `amount_format.activeMoneyCodeDisplay`（`none` 即隐藏），单币种账本 + 开启隐藏时返回 `true` / `null`。`displayCurrencyUnit` 不读闸门（它只解析符号/代码样式），只允许在币种选择器、汇率等式这类「界面主题就是币种」的地方直接用；页头/卡片副标题走 `currencyUnitSubtitle`、卡片角标走 `MoneyUnitLabel`（族 7）。**唯一例外**：「我的」→「货币与汇率」入口用 `optionalCurrencyUnit(...) ?? ''` 占位保宫格行高（`profile_pages.dart`）；别处拿到 null 一律整段省略，不要渲染空串 |
 | `exchangeRateAt` / `rateToBaseAt` / `convertCurrencyAmount` | 纯函数 | `currency_math.dart` | 按交易日取最近历史汇率（不使用未来值）/ 经本位币交叉换算；缺汇率返回强类型结果 |
-| `convertAccountBalancesToBase` / `ConvertedAccountBalances` | 纯函数 / 结果类型 | `currency_math.dart` | 把账户原币余额完整折算到本位币；任一账户缺率时 `completeTotal == null`，并返回缺失币种和受影响账户，禁止展示部分总额 |
+| `convertAccountBalancesToBase` / `ConvertedAccountBalances` | 纯函数 / 结果类型 | `currency_math.dart` | 本位币账户使用余额，外币账户直接采用手填对应金额；缺少非零外币金额时 `completeTotal == null`，返回待填写币种和资产，禁止展示部分总额，不回退汇率 |
 
 ## 族 6 — 交易展示
 
@@ -250,7 +250,12 @@ Veri Fin 已有的**可复用 widget / 弹窗 helper / 对话框 / 纯函数**�
 
 | 名称 | 类型 | 位置 | 用途 |
 |---|---|---|---|
-| `AccountAssetClassField` | Widget | `pages/account_asset_class_field.dart` | 新建账户与账户详情共用的资产类别选择，复用 `AnchoredMenuChoice` / `SelectField` |
+| `AccountAssetClassField` | Widget | `pages/account_asset_class_field.dart` | 新建资产与资产详情共用的资产类别选择，复用 `AnchoredMenuChoice` / `SelectField` |
+| `AccountGroupDetailPage` | 页面 | `pages/account_group_pages.dart` | 单个银行卡／平台容器详情：列出该容器内的资产项、提供添加资产入口，容器改名与删除复用共享的 `_accountGroupMenuEntries` |
+| `baseValuation` 取数 | Controller API | `app/currency_math.dart` / `veri_fin_controller_ops.dart` | 外币资产优先取手填本位币金额，零原币余额不忽略手填值；0 是有效金额。默认直接读取 `Account.baseValuation`，Controller、AI 与小组件口径一致，不要求汇率 |
+| `ungroupedAccountGroupId` | 常量 | `app/models/account.dart` | 「未归类」分区的稳定标识：资产没有所属银行卡／平台时用它；不是真实分组，不写进分组表，容器选择器与资产页分区共用 |
+| `baseCurrencyValuationLabel` | 纯函数 | `app/models/account.dart` | 手填本位币估值的字段标签（人民币账本用「对应人民币金额」，其他本位币按币种取名），月度核对与录入表单共用 |
+| `showAssetSnapshotHelpSheet` | Sheet 函数 | `pages/asset_monthly_page.dart` | 月度资产对照的口径说明（手填估值、外币填写方式、不改写流水），由页头问号按需打开，页面不常驻说明段落 |
 | `HomeCategoryBudgetPanel` | Widget | `pages/home_category_budget_panel.dart` | 首页分类预算面板；复用预算快照和既有预算总览入口 |
 | `AssetMonthlyPage` / `AssetSnapshotEditorPage` | 页面 | `pages/asset_monthly_page.dart` | 窄屏两个月、宽屏三个月资产对照，按类别/银行卡/账户聚合、原币切换、核对与保存快照；月份和金额选择复用现有 helper |
 | `assetComparisonRows` / `validAssetSnapshot` | 纯函数 | `app/asset_snapshot_math.dart` | 按各月冻结信息聚合对照行，以及保存/备份恢复共用的金额与汇率校验 |

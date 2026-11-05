@@ -2,7 +2,7 @@ part of 'common_widgets.dart';
 
 // 页面骨架域：VeriPage/VeriCard/VeriHeader 与头部动作、区块标题、空态。
 
-/// 「缺汇率」提示：说明有多少账户缺率、缺哪些币种，点按可去维护汇率。
+/// 资产缺少手填本位币金额的提示，点按可进入资产管理。
 ///
 /// 外层容器由调用方决定，两种情况都只写这一份实现：
 /// - 裸用（看板资产汇总卡的缺率态）传 [onTap]，组件自带点击区与 8dp 纵向内边距；
@@ -21,7 +21,7 @@ class AssetMissingRateNotice extends StatelessWidget {
   /// 缺失汇率的币种代码，展示时按字典序拼接。
   final Set<String> currencyCodes;
 
-  /// 非 null 时整块可点（一般跳 [CurrencyRatesPage]）。
+  /// 非 null 时整块可点（一般进入银行卡／平台管理）。
   final VoidCallback? onTap;
 
   @override
@@ -31,10 +31,7 @@ class AssetMissingRateNotice extends StatelessWidget {
     final content = Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        Icon(
-          Icons.currency_exchange,
-          color: veriSemantic(context, veriWarning),
-        ),
+        Icon(Icons.edit_outlined, color: veriSemantic(context, veriWarning)),
         const SizedBox(width: 10),
         Expanded(
           child: Column(

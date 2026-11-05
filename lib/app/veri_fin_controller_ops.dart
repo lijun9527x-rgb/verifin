@@ -136,6 +136,7 @@ mixin _ControllerOps on ChangeNotifier, _ControllerState {
       baseCurrencyCode: activeBook.baseCurrencyCode,
       date: date ?? DateTime.now(),
       rates: _exchangeRates,
+      baseValuationOf: (account) => account.baseValuation,
     );
   }
 
@@ -4441,7 +4442,7 @@ mixin _ControllerOps on ChangeNotifier, _ControllerState {
     final nextAccounts = <Account>[
       for (final account in _accounts)
         account.groupId == groupId
-            ? account.copyWith(groupId: 'ungrouped')
+            ? account.copyWith(groupId: ungroupedAccountGroupId)
             : account,
     ];
     final saved = await _runTrackedWrite(
@@ -4602,7 +4603,7 @@ mixin _ControllerOps on ChangeNotifier, _ControllerState {
     _activeBookId = defaultLedgerBookId;
     _assetCoverUrl = '';
     _hapticsEnabled = true;
-    _assetAccountViewMode = AssetAccountViewMode.type;
+    _assetAccountViewMode = AssetAccountViewMode.group;
     _collapsedAssetSections.clear();
     _assetAccountOrders.clear();
     _assetSectionOrders.clear();

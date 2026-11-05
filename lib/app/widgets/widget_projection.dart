@@ -159,10 +159,10 @@ WidgetBookProjection buildWidgetBookProjection({
   );
 }
 
-/// 逐日净资产（本位币），任一必要汇率缺失时该点为 `null`。
+/// 本位币账户按流水生成每日净资产；外币只使用最后一天的当前手填金额。
 ///
 /// 每个可见账户先按生效日聚合增量、再逐日前缀求和，最后交给既有的
-/// [convertAccountBalancesToBase] 做多币种换算，保证与首页资产口径完全一致。
+/// [convertAccountBalancesToBase] 汇总当前金额，保证与首页当前资产口径一致。
 List<double?> _netWorthSeries({
   required WidgetBookSnapshot snapshot,
   required List<DateTime> dates,
@@ -213,7 +213,7 @@ List<double?> _netWorthSeries({
 
   final running = List<double>.of(baseline);
   // 常见情形（账本只有一个币种）直接求和：既省掉每天一次的换算，结果也完全一致——
-  // 本位币账户不需要汇率，[ConvertedAccountBalances] 在缺率时才会返回 null。
+  // 本位币账户不需要额外填写金额。
   final baseCurrencyCode = snapshot.book.baseCurrencyCode;
   final allBaseCurrency = visible.every(
     (account) => account.currencyCode == baseCurrencyCode,
@@ -225,6 +225,11 @@ List<double?> _netWorthSeries({
     }
     if (allBaseCurrency) {
       series.add(running.fold<double>(0, (sum, value) => sum + value));
+      continue;
+    }
+    // 外币只有当前手填金额，没有每日历史金额，不反推过去的资产曲线。
+    if (day != dates.length - 1) {
+      series.add(null);
       continue;
     }
     final converted = convertAccountBalancesToBase(

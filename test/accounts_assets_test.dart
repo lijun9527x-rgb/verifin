@@ -5,23 +5,62 @@ import 'package:verifin/app/app_theme.dart';
 import 'package:verifin/app/chart_painters.dart';
 import 'package:verifin/app/common_widgets.dart';
 import 'package:verifin/app/models.dart';
+import 'package:verifin/app/veri_fin_controller.dart';
 import 'package:verifin/app/veri_fin_scope.dart';
 import 'package:verifin/local_storage/local_storage.dart';
 import 'package:verifin/main.dart';
 import 'package:verifin/pages/account_detail_page.dart';
+import 'package:verifin/pages/assets_pages.dart';
 
 import 'support/test_harness.dart';
 
 void main() {
   useTestDatabases();
 
+  testWidgets('银行卡详情小计采用手填人民币，零原币余额不漏算', (tester) async {
+    final controller = await makeController();
+    await controller.addAccountGroup('测试银行卡');
+    final groupId = controller.accountGroups.last.id;
+    for (final isForeign in [false, true]) {
+      await controller.addAccountDraft(
+        Account(
+          id: isForeign ? 'usd' : 'cny',
+          bookId: controller.activeBook.id,
+          name: isForeign ? '美元存款' : '人民币活期',
+          type: AccountType.debitCard,
+          groupId: groupId,
+          initialBalance: isForeign ? 0 : 1000,
+          currencyCode: isForeign ? 'USD' : 'CNY',
+          baseValuation: isForeign ? 7100 : null,
+          iconCode: 'bank',
+          note: '',
+          includeInAssets: true,
+          hidden: false,
+        ),
+      );
+    }
+    await tester.pumpWidget(
+      VeriFinScope(
+        controller: controller,
+        child: zhMaterialApp(home: AccountGroupDetailPage(groupId: groupId)),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final card = tester.widget<AccountSectionCard>(
+      find.byType(AccountSectionCard),
+    );
+    expect(
+      double.parse(card.totalText!.replaceAll(RegExp(r'[^0-9.]'), '')),
+      8100,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('账户图标选择器支持分组浏览、搜索和选择', (WidgetTester tester) async {
     await pumpApp(tester);
 
     await tapBottomTab(tester, 1);
-    await tester.tap(find.byTooltip('资产操作'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('添加账户'));
+    await tester.tap(find.byTooltip('添加资产'));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('account_icon_select_field')));
     await tester.pumpAndSettle();
@@ -80,9 +119,7 @@ void main() {
     await pumpApp(tester);
 
     await tapBottomTab(tester, 1);
-    await tester.tap(find.byTooltip('资产操作'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('添加账户'));
+    await tester.tap(find.byTooltip('添加资产'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextFormField).first, '中信银行储蓄卡');
     await tester.pumpAndSettle();
@@ -131,9 +168,7 @@ void main() {
     final controller = await pumpApp(tester);
 
     await tapBottomTab(tester, 1);
-    await tester.tap(find.byTooltip('资产操作'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('添加账户'));
+    await tester.tap(find.byTooltip('添加资产'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextFormField).first, '临时账户');
     await tester.pump();
@@ -150,13 +185,17 @@ void main() {
   });
 
   testWidgets('新建账户切换类型后可恢复暂时隐藏的卡号草稿', (tester) async {
+    // 账户类型与卡号收在「卡片与信用（选填）」里，需要一屏放得下整个表单。
+    tester.view.physicalSize = const Size(800, 1600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
     await pumpApp(tester);
     await tapBottomTab(tester, 1);
-    await tester.tap(find.byTooltip('资产操作'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('添加账户'));
+    await tester.tap(find.byTooltip('添加资产'));
     await tester.pumpAndSettle();
 
+    await tester.tap(find.byKey(const Key('add_account_advanced_toggle')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('add_account_type_choice')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('信用卡').last);
@@ -184,9 +223,7 @@ void main() {
   testWidgets('新建账户的初始余额走数字键盘且支持负数', (tester) async {
     final controller = await pumpApp(tester);
     await tapBottomTab(tester, 1);
-    await tester.tap(find.byTooltip('资产操作'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('添加账户'));
+    await tester.tap(find.byTooltip('添加资产'));
     await tester.pumpAndSettle();
 
     await tester.enterText(find.byType(TextFormField).first, '招行信用卡');
@@ -314,7 +351,7 @@ void main() {
     expect(find.text('花呗'), findsNothing);
   });
 
-  testWidgets('混合币种资产缺汇率时隐藏总额，补齐后按本位币显示', (WidgetTester tester) async {
+  testWidgets('外币资产未填人民币时隐藏总额，填写后按手填金额显示', (WidgetTester tester) async {
     final controller = await pumpApp(tester);
     final bookId = controller.activeBook.id;
     controller.addAccount(
@@ -350,8 +387,8 @@ void main() {
     await tester.pump();
     await tapBottomTab(tester, 1);
 
-    expect(find.text('有 1 个账户待设置汇率'), findsOneWidget);
-    expect(find.text('还没有可用于折算的历史汇率，设置今天或更早的汇率后显示资产走势。'), findsOneWidget);
+    expect(find.text('有 1 项资产待填写金额'), findsOneWidget);
+    expect(find.text('暂无月度资产记录'), findsOneWidget);
     await tester.scrollUntilVisible(
       find.text('美元现金'),
       260,
@@ -370,11 +407,19 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('有 1 个账户待设置汇率'), findsNothing);
-    expect(find.text('还没有可用于折算的历史汇率，设置今天或更早的汇率后显示资产走势。'), findsNothing);
+    // 保存汇率不会补算资产，仍需用户填写对应人民币金额。
+    expect(find.text('有 1 项资产待填写金额'), findsOneWidget);
+    await controller.saveAccountDraft(
+      controller.accounts
+          .firstWhere((account) => account.id == 'usd-assets-account')
+          .copyWith(baseValuation: 72),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('有 1 项资产待填写金额'), findsNothing);
+    expect(find.text('暂无月度资产记录'), findsNothing);
     expect(find.text('172 ¥'), findsNWidgets(2));
     expect(find.text('10 \$'), findsOneWidget);
-    expect(find.text('资产估值最旧汇率：2020年1月 · 可能已过期'), findsOneWidget);
+    expect(find.textContaining('资产估值最旧汇率'), findsNothing);
   });
 
   testWidgets('零余额外币账户不要求汇率，历史资产走势仍显示', (WidgetTester tester) async {
@@ -418,7 +463,7 @@ void main() {
     expect(find.byType(InteractiveTrendChart), findsOneWidget);
   });
 
-  testWidgets('非零外币账户设置当前汇率后显示可估值的历史走势', (WidgetTester tester) async {
+  testWidgets('外币历史走势使用已保存月度金额，当前手填金额不补历史', (WidgetTester tester) async {
     final controller = await pumpApp(tester);
     final bookId = controller.activeBook.id;
     controller
@@ -454,7 +499,7 @@ void main() {
       );
     await tester.pump();
     await tapBottomTab(tester, 1);
-    expect(find.text('还没有可用于折算的历史汇率，设置今天或更早的汇率后显示资产走势。'), findsOneWidget);
+    expect(find.text('暂无月度资产记录'), findsOneWidget);
 
     expect(
       await controller.saveExchangeRateDraft(
@@ -466,7 +511,21 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('还没有可用于折算的历史汇率，设置今天或更早的汇率后显示资产走势。'), findsNothing);
+    expect(find.text('暂无月度资产记录'), findsOneWidget);
+    final now = DateTime.now();
+    await controller.saveAssetSnapshot(
+      controller.buildAssetSnapshot(
+        DateTime(now.year, now.month - 1),
+        baseBalances: {'usd-history-account': 50},
+      ),
+    );
+    await controller.saveAccountDraft(
+      controller.accounts
+          .firstWhere((account) => account.id == 'usd-history-account')
+          .copyWith(baseValuation: 57.6),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('暂无月度资产记录'), findsNothing);
     expect(find.byType(InteractiveTrendChart), findsOneWidget);
     final chart = tester.widget<LineChart>(find.byType(LineChart));
     expect(chart.data.lineBarsData.single.dotData.show, isTrue);
@@ -477,11 +536,11 @@ void main() {
       greaterThan(0),
     );
     if (DateTime.now().month > 1) {
-      expect(find.textContaining('部分月份缺少 USD 汇率'), findsOneWidget);
+      expect(find.text('未保存的月份留空'), findsOneWidget);
     }
   });
 
-  testWidgets('历史走势全部缺率时给出可操作的汇率入口', (WidgetTester tester) async {
+  testWidgets('缺月度记录时提供核对余额入口，不再引导设置汇率', (WidgetTester tester) async {
     final controller = await pumpApp(tester);
     final bookId = controller.activeBook.id;
     controller.addAccount(
@@ -503,11 +562,12 @@ void main() {
     await tapBottomTab(tester, 1);
 
     expect(find.byType(InteractiveTrendChart), findsNothing);
-    expect(find.text('设置汇率'), findsOneWidget);
-    await tester.tap(find.text('设置汇率'));
+    expect(find.text('设置汇率'), findsNothing);
+    expect(find.text('核对余额'), findsOneWidget);
+    await tester.tap(find.text('核对余额'));
     await tester.pumpAndSettle();
 
-    expect(find.text('货币与汇率'), findsOneWidget);
+    expect(find.text('月度资产对照'), findsOneWidget);
   });
 
   testWidgets('账户报告页在多币种下不在页头声明单一单位', (WidgetTester tester) async {
@@ -565,21 +625,21 @@ void main() {
     await tapBottomTab(tester, 1);
     await tester.tap(find.byTooltip('资产操作'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('管理分组'));
+    await tester.tap(find.text('管理银行卡／平台'));
     await tester.pumpAndSettle();
 
-    expect(find.text('还没有账户分组'), findsOneWidget);
-    expect(find.text('点击右上角加号创建分组，用来整理不同账户。'), findsOneWidget);
+    expect(find.text('还没有银行卡／平台'), findsOneWidget);
+    expect(find.text('添加银行卡或平台，用来汇总里面的资产。'), findsOneWidget);
   });
 
-  testWidgets('shows accounts by type in the assets page by default', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('资产页默认按银行卡／平台分区', (WidgetTester tester) async {
     await pumpApp(tester);
     await addTestAccount(tester, '现金账户');
 
-    expect(find.text('网络支付'), findsOneWidget);
+    // 未指定容器的资产归入「未归类」，不再按账户类型分区。
+    expect(find.text('未归类'), findsOneWidget);
     expect(find.text('现金账户'), findsOneWidget);
+    expect(find.text('网络支付'), findsNothing);
   });
 
   testWidgets('asset section total ignores accounts excluded from assets', (
@@ -789,20 +849,20 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('类型'));
+    await tester.tap(find.text('账户类型'));
     await tester.pumpAndSettle();
     expect(find.text('支持卡号、额度、账单日与还款'), findsOneWidget);
     await tester.tap(find.text('现金').last);
     await tester.pumpAndSettle();
     expect(find.text('卡片信息'), findsNothing);
 
-    await tester.tap(find.text('类型'));
+    await tester.tap(find.text('账户类型'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('信用卡').last);
     await tester.pumpAndSettle();
     expect(find.text('6222333344445678'), findsOneWidget);
 
-    await tester.tap(find.text('类型'));
+    await tester.tap(find.text('账户类型'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('现金').last);
     await tester.pumpAndSettle();
@@ -846,20 +906,21 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('资产显示设置'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('类型视图'));
+    await tester.tap(find.text('分类视图').first);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('分类视图'));
+    await tester.tap(find.text('类型视图').last);
     await tester.pumpAndSettle();
 
-    // 设置页只更新草稿，Controller 仍保持类型视图。
-    expect(controller.assetAccountViewMode, AssetAccountViewMode.type);
+    // 设置页只更新草稿，Controller 仍保持默认的银行卡／平台分区。
+    expect(controller.assetAccountViewMode, AssetAccountViewMode.group);
     await tester.tap(find.byTooltip('保存'));
     await tester.pumpAndSettle();
+    expect(controller.assetAccountViewMode, AssetAccountViewMode.type);
 
-    expect(find.text('未分组'), findsOneWidget);
+    expect(find.text('网络支付'), findsOneWidget);
     expect(find.text('支付宝账户'), findsOneWidget);
 
-    await tester.tap(find.text('未分组'));
+    await tester.tap(find.text('网络支付'));
     await tester.pumpAndSettle();
     expect(find.text('支付宝账户'), findsNothing);
 
@@ -867,7 +928,7 @@ void main() {
     await pumpApp(tester, store);
     await tapBottomTab(tester, 1);
 
-    expect(find.text('未分组'), findsOneWidget);
+    expect(find.text('网络支付'), findsOneWidget);
     expect(find.text('支付宝账户'), findsNothing);
   });
 
@@ -879,9 +940,10 @@ void main() {
     await tester.tap(find.text('资产显示设置'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('类型视图'));
+    // 打开分区方式菜单（默认显示「分类视图」）后选择「类型视图」。
+    await tester.tap(find.text('分类视图').first);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('分类视图'));
+    await tester.tap(find.text('类型视图').last);
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('返回'));
     await tester.pumpAndSettle();
@@ -889,7 +951,8 @@ void main() {
     expect(find.text('保存修改？'), findsOneWidget);
     await tester.tap(find.text('不保存'));
     await tester.pumpAndSettle();
-    expect(controller.assetAccountViewMode, AssetAccountViewMode.type);
+    // 默认按银行卡／平台分区，放弃草稿后仍回到该默认。
+    expect(controller.assetAccountViewMode, AssetAccountViewMode.group);
     expect(find.text('资产显示设置'), findsNothing);
   });
 
@@ -951,6 +1014,8 @@ void main() {
       source
         ..addAccount(first)
         ..addAccount(second)
+        // 默认按银行卡／平台分区，先切到类型视图再验证该视图的偏好持久化。
+        ..toggleAssetAccountViewMode()
         ..toggleAssetSectionCollapsed(
           mode: AssetAccountViewMode.type,
           sectionId: AccountType.cash.name,
@@ -1054,6 +1119,8 @@ void main() {
           hidden: false,
         ),
       );
+    // 该用例验证按账户类型分区的排序，先切到类型视图。
+    controller.toggleAssetAccountViewMode();
     await tester.pumpWidget(VeriFinApp(controller: controller));
     await tester.pumpAndSettle();
 
@@ -1063,7 +1130,7 @@ void main() {
     await tester.tap(find.text('资产显示设置'));
     await tester.pumpAndSettle();
 
-    expect(find.text('拖动分区手柄或长按账户调整顺序'), findsOneWidget);
+    expect(find.text('拖动分区手柄或长按资产调整顺序'), findsOneWidget);
     final before = controller.sortedAssetSections<String>(
       mode: AssetAccountViewMode.type,
       sections: const <String>['creditCard', 'cash'],
@@ -1100,6 +1167,74 @@ void main() {
       ),
       const <String>['cash', 'creditCard'],
     );
+  });
+
+  testWidgets('新建的空银行卡保留在资产页并能直接进入添加资产', (tester) async {
+    await pumpApp(tester);
+    await tapBottomTab(tester, 1);
+    await tester.tap(find.byTooltip('资产操作'));
+    await tester.pumpAndSettle();
+    // 空状态的按钮与菜单里都有这条文案，取菜单里的那一项。
+    await tester.tap(find.text('添加银行卡／平台').last);
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const Key('text_input_dialog_field')),
+      '建行尾号9012',
+    );
+    await tester.pump();
+    await tester.tap(find.widgetWithText(FilledButton, '确认'));
+    await tester.pumpAndSettle();
+
+    // 没有资产明细的容器也要留在资产页，否则刚建完就找不到入口。
+    expect(find.text('建行尾号9012'), findsWidgets);
+    await tester.tap(find.text('建行尾号9012'));
+    await tester.pumpAndSettle();
+    expect(find.byType(AccountGroupDetailPage), findsOneWidget);
+    await tester.tap(find.widgetWithText(FilledButton, '添加资产'));
+    await tester.pumpAndSettle();
+    expect(find.byType(AddAccountPage), findsOneWidget);
+  });
+
+  testWidgets('资产页分区标题进入银行卡／平台详情并在其中添加资产', (WidgetTester tester) async {
+    final controller = await pumpApp(tester);
+    expect(await controller.addAccountGroup('招行尾号1234'), isTrue);
+    final groupId = controller.accountGroups.single.id;
+    await controller.addAccountDraft(
+      Account(
+        id: 'existing-demand',
+        bookId: controller.activeBook.id,
+        name: '招行人民币活期',
+        type: AccountType.debitCard,
+        assetClass: AssetClass.demandDeposit,
+        groupId: groupId,
+        initialBalance: 100,
+        iconCode: 'wallet',
+        note: '',
+        includeInAssets: true,
+        hidden: false,
+        currencyCode: controller.activeBook.baseCurrencyCode,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tapBottomTab(tester, 1);
+    // 分区标题即容器入口，点击进入详情而不是折叠。
+    await tester.tap(find.text('招行尾号1234'));
+    await tester.pumpAndSettle();
+    expect(find.byType(AccountGroupDetailPage), findsOneWidget);
+    expect(find.text('招行人民币活期'), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(FilledButton, '添加资产'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextFormField).first, '招行一年定期');
+    await tester.pump();
+    await tester.tap(find.byTooltip('保存'));
+    await tester.pumpAndSettle();
+
+    final created = controller.accounts.firstWhere(
+      (account) => account.name == '招行一年定期',
+    );
+    expect(created.groupId, groupId);
   });
 
   testWidgets('资产页不再提供会即时落库的内联排序', (WidgetTester tester) async {

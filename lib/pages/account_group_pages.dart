@@ -59,6 +59,122 @@ class HiddenAccountsPage extends StatelessWidget {
   }
 }
 
+/// 单个资金容器（银行卡／平台）详情：在这里查看和添加该容器里的资产项。
+/// 容器本身仍复用 AccountGroup，不另存一份可重复计入的余额。
+class AccountGroupDetailPage extends StatelessWidget {
+  const AccountGroupDetailPage({super.key, required this.groupId});
+
+  final String groupId;
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = VeriFinScope.of(context);
+    final l10n = AppLocalizations.of(context);
+    final group = controller.accountGroups
+        .where((item) => item.id == groupId)
+        .firstOrNull;
+    final accounts = group == null
+        ? const <Account>[]
+        : _sortedAccounts(
+            controller.accounts.where(
+              (account) => account.groupId == groupId && !account.hidden,
+            ),
+          );
+    final balances = <Account, double>{
+      for (final account in accounts)
+        account: controller.accountBalance(account),
+    };
+
+    return Scaffold(
+      body: SafeArea(
+        child: VeriPage(
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(14, 8, 14, 28),
+            children: <Widget>[
+              VeriHeader(
+                title: group?.name ?? l10n.assetsUngrouped,
+                showBack: true,
+                actions: <Widget>[
+                  HeaderAction(
+                    icon: Icons.add,
+                    tooltip: l10n.accountAdd,
+                    onPressed: () => _openAddAccount(context),
+                  ),
+                  if (group != null)
+                    AnchoredMenuButton(
+                      icon: Icons.more_horiz,
+                      tooltip: l10n.accountGroupsTitle,
+                      entries: _accountGroupMenuEntries(
+                        context,
+                        group: group,
+                        accountCount: accounts.length,
+                        onDeleted: () => Navigator.of(context).pop(),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              if (accounts.isEmpty)
+                VeriCard(
+                  child: EmptyState(
+                    icon: Icons.account_balance_wallet_outlined,
+                    title: l10n.assetsEmptyTitle,
+                    description: l10n.assetsEmptyDesc,
+                    action: FilledButton.icon(
+                      onPressed: () => _openAddAccount(context),
+                      icon: const Icon(Icons.add, size: 18),
+                      label: Text(l10n.accountAdd),
+                    ),
+                  ),
+                )
+              else ...<Widget>[
+                AccountSectionCard(
+                  title: l10n.accountsCount(accounts.length),
+                  accounts: accounts,
+                  balances: balances,
+                  totalText: _assetSectionTotalText(
+                    accounts: accounts,
+                    valuation: controller.accountBalancesInBase(
+                      accounts: accounts.where(
+                        (account) => account.includeInAssets,
+                      ),
+                    ),
+                    baseCurrencyCode: controller.activeBook.baseCurrencyCode,
+                  ),
+                  onAccountTap: (account) {
+                    Navigator.of(context).push<void>(
+                      MaterialPageRoute<void>(
+                        builder: (context) =>
+                            AccountDetailPage(account: account),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 12),
+                FilledButton.icon(
+                  onPressed: () => _openAddAccount(context),
+                  icon: const Icon(Icons.add, size: 18),
+                  label: Text(l10n.accountAdd),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _openAddAccount(BuildContext context) {
+    unawaited(
+      Navigator.of(context).push<void>(
+        MaterialPageRoute<void>(
+          builder: (context) => AddAccountPage(initialGroupId: groupId),
+        ),
+      ),
+    );
+  }
+}
+
 class AccountGroupsPage extends StatefulWidget {
   const AccountGroupsPage({super.key});
 
@@ -97,7 +213,7 @@ class _AccountGroupsPageState extends State<AccountGroupsPage> {
                         HeaderAction(
                           icon: Icons.add,
                           tooltip: AppLocalizations.of(context).groupAdd,
-                          onPressed: () => _showGroupNameDialog(context),
+                          onPressed: () => _showAccountGroupNameDialog(context),
                         ),
                       SortModeHeaderActions(
                         sorting: _sorting,
@@ -158,9 +274,10 @@ class _AccountGroupsPageState extends State<AccountGroupsPage> {
                                     );
                                   } else {
                                     row = AnchoredMenuAnchor(
-                                      entries: _groupMenuEntries(
-                                        group,
-                                        accountCount,
+                                      entries: _accountGroupMenuEntries(
+                                        context,
+                                        group: group,
+                                        accountCount: accountCount,
                                       ),
                                       semanticLabel: group.name,
                                       builder: (context, openMenu, menuOpen) =>
@@ -169,7 +286,17 @@ class _AccountGroupsPageState extends State<AccountGroupsPage> {
                                             group: group,
                                             accountCount: accountCount,
                                             sorting: false,
-                                            onTap: openMenu,
+                                            // 点击整行进容器，三点才开操作菜单。
+                                            onTap: () => unawaited(
+                                              Navigator.of(context).push<void>(
+                                                MaterialPageRoute<void>(
+                                                  builder: (context) =>
+                                                      AccountGroupDetailPage(
+                                                        groupId: group.id,
+                                                      ),
+                                                ),
+                                              ),
+                                            ),
                                             onActions: openMenu,
                                           ),
                                     );
@@ -268,71 +395,87 @@ class _AccountGroupsPageState extends State<AccountGroupsPage> {
         break;
     }
   }
+}
 
-  Future<void> _showGroupNameDialog(
-    BuildContext context, {
-    String? groupId,
-  }) async {
-    final controller = VeriFinScope.of(context);
-    final editingGroup = groupId == null
-        ? null
-        : controller.accountGroups.firstWhere((group) => group.id == groupId);
-    final l10n = AppLocalizations.of(context);
-    final name = await showTextInputDialog(
-      context: context,
-      title: groupId == null ? l10n.groupAdd : l10n.groupRenameTitle,
-      label: l10n.groupNameLabel,
-      initialValue: editingGroup?.name ?? '',
-    );
-    if (!context.mounted || name == null) {
-      return;
-    }
-    if (groupId == null) {
-      await controller.addAccountGroup(name);
-    } else {
-      await controller.renameAccountGroup(groupId, name);
-    }
+/// 新增或重命名银行卡／平台。分组管理页与资产表单都会用到，统一放这里。
+Future<void> _showAccountGroupNameDialog(
+  BuildContext context, {
+  String? groupId,
+}) async {
+  final controller = VeriFinScope.of(context);
+  final matching = groupId == null
+      ? const <AccountGroup>[]
+      : controller.accountGroups.where((group) => group.id == groupId);
+  final l10n = AppLocalizations.of(context);
+  final name = await showTextInputDialog(
+    context: context,
+    title: groupId == null ? l10n.groupAdd : l10n.groupRenameTitle,
+    label: l10n.groupNameLabel,
+    initialValue: matching.isEmpty ? '' : matching.first.name,
+  );
+  if (!context.mounted || name == null) {
+    return;
   }
-
-  List<AnchoredMenuEntry> _groupMenuEntries(
-    AccountGroup group,
-    int accountCount,
-  ) {
-    final l10n = AppLocalizations.of(context);
-    return <AnchoredMenuEntry>[
-      AnchoredMenuItem(
-        id: 'account_group_rename',
-        icon: Icons.drive_file_rename_outline,
-        title: l10n.commonRename,
-        onPressed: () async => _showGroupNameDialog(context, groupId: group.id),
-      ),
-      const AnchoredMenuDivider(),
-      AnchoredMenuItem(
-        id: 'account_group_delete',
-        icon: Icons.delete_outline,
-        title: l10n.commonDelete,
-        foregroundColor: Theme.of(context).colorScheme.error,
-        onPressed: () async => _deleteGroup(group, accountCount),
-      ),
-    ];
+  if (groupId == null) {
+    await controller.addAccountGroup(name);
+  } else {
+    await controller.renameAccountGroup(groupId, name);
   }
+}
 
-  Future<void> _deleteGroup(AccountGroup group, int accountCount) async {
-    final controller = VeriFinScope.of(context);
-    final l10n = AppLocalizations.of(context);
-    final confirmed = await showConfirmDialog(
-      context,
-      title: l10n.groupDeleteTitle,
-      message: accountCount == 0
-          ? l10n.groupDeleteMessage(group.name)
-          : l10n.groupDeleteInUseMessage(group.name, accountCount),
-      confirmLabel: l10n.commonDelete,
-      destructive: true,
-    );
-    if (!mounted || !confirmed) {
-      return;
-    }
-    await controller.deleteAccountGroup(group.id);
+List<AnchoredMenuEntry> _accountGroupMenuEntries(
+  BuildContext context, {
+  required AccountGroup group,
+  required int accountCount,
+  VoidCallback? onDeleted,
+}) {
+  final l10n = AppLocalizations.of(context);
+  return <AnchoredMenuEntry>[
+    AnchoredMenuItem(
+      id: 'account_group_rename',
+      icon: Icons.drive_file_rename_outline,
+      title: l10n.commonRename,
+      onPressed: () async =>
+          _showAccountGroupNameDialog(context, groupId: group.id),
+    ),
+    const AnchoredMenuDivider(),
+    AnchoredMenuItem(
+      id: 'account_group_delete',
+      icon: Icons.delete_outline,
+      title: l10n.commonDelete,
+      foregroundColor: Theme.of(context).colorScheme.error,
+      onPressed: () async => _deleteAccountGroup(
+        context,
+        group: group,
+        accountCount: accountCount,
+        onDeleted: onDeleted,
+      ),
+    ),
+  ];
+}
+
+Future<void> _deleteAccountGroup(
+  BuildContext context, {
+  required AccountGroup group,
+  required int accountCount,
+  VoidCallback? onDeleted,
+}) async {
+  final controller = VeriFinScope.of(context);
+  final l10n = AppLocalizations.of(context);
+  final confirmed = await showConfirmDialog(
+    context,
+    title: l10n.groupDeleteTitle,
+    message: accountCount == 0
+        ? l10n.groupDeleteMessage(group.name)
+        : l10n.groupDeleteInUseMessage(group.name, accountCount),
+    confirmLabel: l10n.commonDelete,
+    destructive: true,
+  );
+  if (!context.mounted || !confirmed) {
+    return;
+  }
+  if (await controller.deleteAccountGroup(group.id)) {
+    onDeleted?.call();
   }
 }
 
@@ -411,7 +554,11 @@ class _AccountGroupManageRow extends StatelessWidget {
                 )
               else
                 IconButton(
-                  tooltip: group.name,
+                  // 行本身是「进入容器」，三点只是该行的操作菜单：两者分开命名，
+                  // 也让无障碍读屏不再把两个入口都念成同一个名字。
+                  tooltip: AppLocalizations.of(
+                    context,
+                  ).groupRowActions(group.name),
                   onPressed: onActions,
                   icon: const Icon(Icons.more_vert),
                 ),

@@ -66,13 +66,16 @@ enum AccountType {
 }
 
 /// 资产性质与账户能力分开；所属银行卡/平台复用 AccountGroup。
+/// 枚举顺序即用户看到的类别顺序：先人民币存款与基金，再外币，最后兜底。
+/// 存储用 `name`，调整顺序不影响已有数据。
 enum AssetClass {
   demandDeposit,
   fixedDeposit,
+  moneyMarketFund,
   bondFund,
   equityFund,
-  foreignFixedDeposit,
   foreignDemandDeposit,
+  foreignFixedDeposit,
   other;
 
   static AssetClass fromStorage(String? value) => AssetClass.values.firstWhere(
@@ -80,13 +83,20 @@ enum AssetClass {
     orElse: () => AssetClass.other,
   );
 
+  /// 基金类资产填当前市值，不是累计投入本金，录入与核对时用「市值」措辞。
+  bool get isFund =>
+      this == AssetClass.moneyMarketFund ||
+      this == AssetClass.bondFund ||
+      this == AssetClass.equityFund;
+
   String label(AppLocalizations l10n) => switch (this) {
     AssetClass.demandDeposit => l10n.assetClassDemand,
     AssetClass.fixedDeposit => l10n.assetClassFixed,
+    AssetClass.moneyMarketFund => l10n.assetClassMoneyMarket,
     AssetClass.bondFund => l10n.assetClassBond,
     AssetClass.equityFund => l10n.assetClassEquity,
-    AssetClass.foreignFixedDeposit => l10n.assetClassForeignFixed,
     AssetClass.foreignDemandDeposit => l10n.assetClassForeignDemand,
+    AssetClass.foreignFixedDeposit => l10n.assetClassForeignFixed,
     AssetClass.other => l10n.assetClassOther,
   };
 }
@@ -108,6 +118,7 @@ class Account {
     this.cardLast4 = '',
     this.cardNumber = '',
     this.cardLast4Follows = true,
+    this.baseValuation,
     this.creditLimit,
     this.statementDay,
     this.dueDay,
@@ -136,6 +147,11 @@ class Account {
   /// 独立于完整卡号。新账户默认 true；仅信用卡/储蓄卡有意义。
   final bool cardLast4Follows;
 
+  /// 外币资产手填的本位币金额（可空）。填了就按这个数计入资产汇总、容器小计
+  /// 与净资产，不要求用户维护汇率、也不联网换算；非零外币余额未填则不显示完整总额。
+  /// 这是**当前**金额，历史各月的填写值分别冻结在月度快照里，两者互不覆盖。
+  final double? baseValuation;
+
   /// 信用额度上限（选填，仅信用卡/信用账户 supportsCredit）。设置后展示已用/可用额度。
   final double? creditLimit;
 
@@ -161,6 +177,8 @@ class Account {
     String? cardLast4,
     String? cardNumber,
     bool? cardLast4Follows,
+    double? baseValuation,
+    bool clearBaseValuation = false,
     double? creditLimit,
     bool clearCreditLimit = false,
     int? statementDay,
@@ -184,6 +202,9 @@ class Account {
       cardLast4: cardLast4 ?? this.cardLast4,
       cardNumber: cardNumber ?? this.cardNumber,
       cardLast4Follows: cardLast4Follows ?? this.cardLast4Follows,
+      baseValuation: clearBaseValuation
+          ? null
+          : baseValuation ?? this.baseValuation,
       creditLimit: clearCreditLimit ? null : creditLimit ?? this.creditLimit,
       statementDay: clearStatementDay
           ? null
@@ -209,6 +230,7 @@ class Account {
       'cardLast4': cardLast4,
       'cardNumber': cardNumber,
       'cardLast4Follows': cardLast4Follows,
+      if (baseValuation != null) 'baseValuation': baseValuation,
       if (creditLimit != null) 'creditLimit': creditLimit,
       if (statementDay != null) 'statementDay': statementDay,
       if (dueDay != null) 'dueDay': dueDay,
@@ -234,12 +256,25 @@ class Account {
       cardNumber: json['cardNumber'] as String? ?? '',
       // 旧备份（无此字段）默认 false：保留其手填后四位、不因跟随把它冲成空。
       cardLast4Follows: json['cardLast4Follows'] as bool? ?? false,
+      baseValuation: (json['baseValuation'] as num?)?.toDouble(),
       creditLimit: (json['creditLimit'] as num?)?.toDouble(),
       statementDay: (json['statementDay'] as num?)?.toInt(),
       dueDay: (json['dueDay'] as num?)?.toInt(),
     );
   }
 }
+
+/// 「未归类」分区的稳定标识：资产没有所属银行卡／平台时归入该分区。
+/// 它不是真实的 [AccountGroup]，只表示「没有容器」，不写进分组表。
+const String ungroupedAccountGroupId = 'ungrouped';
+
+/// 手填本位币估值的字段标签：人民币账本说「对应人民币金额」，其他本位币按币种取名。
+String baseCurrencyValuationLabel(
+  AppLocalizations l10n,
+  String baseCurrencyCode,
+) => baseCurrencyCode == 'CNY'
+    ? l10n.assetSnapshotManualValue
+    : l10n.baseCurrencyAmountLabel(baseCurrencyCode);
 
 /// 从完整卡号提取后四位（只取数字，末四位）。空号返回空串。
 String cardLast4Of(String cardNumber) {

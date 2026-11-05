@@ -193,6 +193,8 @@ void main() {
       expect(account.dueDay, isNull);
       expect(account.currencyCode, 'CNY');
       expect(account.assetClass, AssetClass.other);
+      // v21 之前没有手填估值列：旧账户读回 null，不得猜出估值。
+      expect(account.baseValuation, isNull);
       expect(await repo.loadAssetSnapshots(), isEmpty);
       expect(account.iconCode, 'asset:payment_006');
 

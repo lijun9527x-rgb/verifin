@@ -4,6 +4,30 @@ import 'models.dart';
 import 'currency_catalog.dart';
 import 'currency_math.dart';
 
+/// 年内历史月份取已保存快照，当前月取当前汇总；缺失和未来月份保留 null。
+/// 不使用当前手填金额或汇率反推历史。
+List<double?> assetMonthlyAmountSeries({
+  required Iterable<AssetMonthSnapshot> snapshots,
+  required String bookId,
+  required String baseCurrencyCode,
+  required DateTime now,
+  required double? currentTotal,
+}) {
+  final saved = <int, AssetMonthSnapshot>{
+    for (final snapshot in snapshots)
+      if (snapshot.bookId == bookId &&
+          snapshot.baseCurrencyCode == baseCurrencyCode &&
+          snapshot.month.year == now.year)
+        snapshot.month.month: snapshot,
+  };
+  return List<double?>.generate(12, (index) {
+    final month = index + 1;
+    if (month > now.month) return null;
+    if (month == now.month) return currentTotal;
+    return saved[month]?.totalInBase;
+  });
+}
+
 /// 保存与备份恢复共用的快照校验，防止冻结金额与原币/汇率相互矛盾。
 bool validAssetSnapshot(
   AssetMonthSnapshot snapshot,

@@ -91,7 +91,18 @@ class _AssetMonthlyPageState extends State<AssetMonthlyPage> {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(14, 8, 14, 28),
             children: [
-              VeriHeader(title: l10n.assetMonthlyTitle, showBack: true),
+              VeriHeader(
+                title: l10n.assetMonthlyTitle,
+                showBack: true,
+                actions: <Widget>[
+                  HeaderAction(
+                    icon: Icons.help_outline,
+                    tooltip: l10n.commonHelp,
+                    onPressed: () =>
+                        showAssetSnapshotHelpSheet(context: context),
+                  ),
+                ],
+              ),
               MonthSwitcher(
                 label: l10n.yearMonth(_month),
                 onLabelTap: () async {
@@ -130,8 +141,6 @@ class _AssetMonthlyPageState extends State<AssetMonthlyPage> {
                     onChanged: (value) => _change(() => _native = value),
                   ),
                 ),
-              const SizedBox(height: 12),
-              Text(l10n.assetMonthlyDescription),
               const SizedBox(height: 12),
               FilledButton.icon(
                 key: const Key('asset_snapshot_edit'),
@@ -238,11 +247,6 @@ class _AssetMonthlyPageState extends State<AssetMonthlyPage> {
                     ],
                   ),
                 ),
-              const SizedBox(height: 12),
-              Text(
-                l10n.assetSnapshotRates,
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
             ],
           ),
         ),
@@ -297,9 +301,7 @@ class _AssetSnapshotEditorPageState extends State<AssetSnapshotEditorPage> {
     final l10n = AppLocalizations.of(context);
     final value = await showNumberPadSheet(
       context,
-      title: code == 'CNY'
-          ? l10n.assetSnapshotManualValue
-          : l10n.baseCurrencyAmountLabel(code),
+      title: baseCurrencyValuationLabel(l10n, code),
       initialAmount: _baseBalances[holding.accountId] ?? holding.baseBalance,
       currencyCode: code,
       allowZero: true,
@@ -308,6 +310,71 @@ class _AssetSnapshotEditorPageState extends State<AssetSnapshotEditorPage> {
     if (!mounted || value == null) return;
     setState(() {
       _baseBalances[holding.accountId] = value;
+      _dirty = true;
+    });
+  }
+
+  /// 把当前账本里尚未出现在该月记录中的资产补进来。
+  /// 只新增条目，不覆盖已核对的金额、名称与分组。
+  Future<void> _addHolding() async {
+    final template = _template;
+    if (template == null) return;
+    final controller = VeriFinScope.of(context);
+    final l10n = AppLocalizations.of(context);
+    final existing = template.holdings
+        .map((holding) => holding.accountId)
+        .toSet();
+    final candidates = controller
+        .buildAssetSnapshot(widget.month)
+        .holdings
+        .where((holding) => !existing.contains(holding.accountId))
+        .toList(growable: false);
+    if (candidates.isEmpty) {
+      unawaited(
+        VeriFeedbackHost.of(
+          context,
+        ).showMessage(message: l10n.assetSnapshotAddHoldingEmpty),
+      );
+      return;
+    }
+    final byId = <String, AssetHoldingSnapshot>{
+      for (final holding in candidates) holding.accountId: holding,
+    };
+    final selectedId = await showOptionSheet<String>(
+      context: context,
+      title: l10n.assetSnapshotAddHoldingTitle,
+      values: byId.keys.toList(),
+      selected: '',
+      labelOf: (id) {
+        final holding = byId[id]!;
+        return '${holding.name} · ${holding.currencyCode}';
+      },
+    );
+    if (selectedId == null || !mounted) return;
+    final source = byId[selectedId]!;
+    final isBase = source.currencyCode == template.baseCurrencyCode;
+    setState(() {
+      _template = AssetMonthSnapshot(
+        bookId: template.bookId,
+        month: template.month,
+        recordedAt: template.recordedAt,
+        baseCurrencyCode: template.baseCurrencyCode,
+        holdings: <AssetHoldingSnapshot>[
+          ...template.holdings,
+          AssetHoldingSnapshot(
+            accountId: source.accountId,
+            name: source.name,
+            bankName: source.bankName,
+            bankId: source.bankId,
+            assetClass: source.assetClass,
+            currencyCode: source.currencyCode,
+            balance: source.balance,
+            // 补入的外币资产仍需手填人民币估值，先留空由用户核对。
+            rateToBase: isBase ? 1 : null,
+            baseBalance: isBase ? source.balance : null,
+          ),
+        ],
+      );
       _dirty = true;
     });
   }
@@ -379,6 +446,12 @@ class _AssetSnapshotEditorPageState extends State<AssetSnapshotEditorPage> {
                   subtitle: l10n.yearMonth(widget.month),
                   showBack: true,
                   actions: [
+                    // 已保存月份可显式补入遗漏的资产，其他已核对金额保持不变。
+                    HeaderAction(
+                      icon: Icons.add,
+                      tooltip: l10n.assetSnapshotAddHolding,
+                      onPressed: _saving ? null : _addHolding,
+                    ),
                     SaveHeaderAction(
                       onPressed: _saving || draft.holdings.isEmpty
                           ? null
@@ -388,7 +461,6 @@ class _AssetSnapshotEditorPageState extends State<AssetSnapshotEditorPage> {
                     ),
                   ],
                 ),
-                Text(l10n.assetSnapshotHelp),
                 const SizedBox(height: 16),
                 for (final holding in draft.holdings) ...[
                   SelectField(
@@ -403,11 +475,10 @@ class _AssetSnapshotEditorPageState extends State<AssetSnapshotEditorPage> {
                   const SizedBox(height: 10),
                   if (holding.currencyCode != draft.baseCurrencyCode) ...[
                     SelectField(
-                      label: draft.baseCurrencyCode == 'CNY'
-                          ? l10n.assetSnapshotManualValue
-                          : l10n.baseCurrencyAmountLabel(
-                              draft.baseCurrencyCode,
-                            ),
+                      label: baseCurrencyValuationLabel(
+                        l10n,
+                        draft.baseCurrencyCode,
+                      ),
                       value: holding.baseBalance == null
                           ? l10n.notSet
                           : formatUserMoney(
@@ -428,4 +499,36 @@ class _AssetSnapshotEditorPageState extends State<AssetSnapshotEditorPage> {
       ),
     );
   }
+}
+
+/// 口径说明按需打开：页面上只留短标签，不常驻解释段落。
+Future<void> showAssetSnapshotHelpSheet({required BuildContext context}) {
+  final l10n = AppLocalizations.of(context);
+  return showVeriModalSheet<void>(
+    context: context,
+    showDragHandle: true,
+    backgroundColor: Theme.of(context).colorScheme.surface,
+    builder: (context) => Padding(
+      padding: const EdgeInsets.fromLTRB(20, 4, 20, 28),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(
+            l10n.assetMonthlyTitle,
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 8),
+          Text(l10n.assetSnapshotHelp),
+          const SizedBox(height: 12),
+          Text(
+            l10n.assetSnapshotRates,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ],
+      ),
+    ),
+  );
 }

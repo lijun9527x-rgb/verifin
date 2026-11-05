@@ -930,7 +930,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coverDeepBlue => 'Deep blue';
 
   @override
-  String get assetsUngrouped => 'Ungrouped';
+  String get assetsUngrouped => 'Uncategorized';
 
   @override
   String get netAssets => 'Net worth';
@@ -959,18 +959,18 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get assetsEmptyTitle => 'No accounts yet';
+  String get assetsEmptyTitle => 'No assets yet';
 
   @override
   String get assetsEmptyDesc =>
-      'Add an account from the top right; you can then view assets by type or group here.';
+      'Add a bank or platform first, then add the assets you actually hold.';
 
   @override
-  String get assetsEmptyAddAction => 'Add your first account';
+  String get assetsEmptyAddAction => 'Add bank or platform';
 
   @override
   String hiddenAccountsCount(int count) {
-    return '$count hidden accounts';
+    return '$count hidden assets';
   }
 
   @override
@@ -980,11 +980,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get assetDisplaySettingsTitle => 'Asset display settings';
 
   @override
-  String get assetViewModeLabel => 'Account grouping';
+  String get assetViewModeLabel => 'Asset grouping';
 
   @override
   String get assetOrderHint =>
-      'Drag section handles or long-press accounts to reorder';
+      'Drag section handles or long-press assets to reorder';
 
   @override
   String get coverUseOnline => 'Use online image';
@@ -1011,39 +1011,39 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coverGenerating => 'Generating background…';
 
   @override
-  String get accountAdd => 'Add account';
+  String get accountAdd => 'Add asset';
 
   @override
-  String get groupManage => 'Manage groups';
+  String get groupManage => 'Manage banks & platforms';
 
   @override
   String get sortLabel => 'Sort';
 
   @override
-  String get hiddenAccountsTitle => 'Hidden accounts';
+  String get hiddenAccountsTitle => 'Hidden assets';
 
   @override
-  String get hiddenAccountsEmptyTitle => 'No hidden accounts';
+  String get hiddenAccountsEmptyTitle => 'No hidden assets';
 
   @override
-  String get hiddenAccountsEmptyDesc => 'Hidden accounts appear here.';
+  String get hiddenAccountsEmptyDesc => 'Hidden assets appear here.';
 
   @override
-  String get accountGroupsTitle => 'Account groups';
+  String get accountGroupsTitle => 'Banks & platforms';
 
   @override
-  String get groupAdd => 'New group';
+  String get groupAdd => 'Add bank or platform';
 
   @override
-  String get groupsEmptyTitle => 'No account groups yet';
+  String get groupsEmptyTitle => 'No banks or platforms yet';
 
   @override
   String get groupsEmptyDesc =>
-      'Tap the plus at top right to create groups for organizing accounts.';
+      'Add a bank or platform to group the assets inside it.';
 
   @override
   String accountsCount(int count) {
-    return '$count accounts';
+    return '$count assets';
   }
 
   @override
@@ -1053,35 +1053,35 @@ class AppLocalizationsEn extends AppLocalizations {
   String get commonIcon => 'Icon';
 
   @override
-  String get groupRenameTitle => 'Rename group';
+  String get groupRenameTitle => 'Rename bank or platform';
 
   @override
-  String get groupNameLabel => 'Group name';
+  String get groupNameLabel => 'Name';
 
   @override
-  String get groupDeleteTitle => 'Delete group';
+  String get groupDeleteTitle => 'Delete bank or platform';
 
   @override
   String groupDeleteMessage(String name) {
-    return 'Delete the group “$name”?';
+    return 'Delete “$name”?';
   }
 
   @override
   String groupDeleteInUseMessage(String name, int count) {
-    return 'Deleting “$name” will move its $count accounts to Ungrouped. Accounts and transactions will not be deleted.';
+    return 'Deleting “$name” will move its $count assets to Uncategorized. Assets and transactions will not be deleted.';
   }
 
   @override
-  String get accountIconLabel => 'Account icon';
+  String get accountIconLabel => 'Asset icon';
 
   @override
   String get accountTypeLabel => 'Account type';
 
   @override
-  String get accountNameLabel => 'Account name';
+  String get accountNameLabel => 'Asset name';
 
   @override
-  String get accountNameRequired => 'Account name is required';
+  String get accountNameRequired => 'Asset name is required';
 
   @override
   String get cardLast4Label => 'Last 4 digits';
@@ -1120,19 +1120,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get accountSectionDanger => 'Danger zone';
 
   @override
-  String get accountBalanceLabel => 'Account balance';
+  String get accountBalanceLabel => 'Asset balance';
 
   @override
-  String get accountNoteLabel => 'Account note';
+  String get accountNoteLabel => 'Asset note';
 
   @override
-  String get accountGroupLabel => 'Account group';
+  String get accountGroupLabel => 'Bank or platform';
 
   @override
   String get accountTypePickerTitle => 'Choose account type';
 
   @override
-  String get accountGroupPickerTitle => 'Choose account group';
+  String get accountGroupPickerTitle => 'Choose bank or platform';
 
   @override
   String get balanceAdjustTooltip => 'Adjust balance';
@@ -1164,7 +1164,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noEntriesTitle => 'No transactions';
 
   @override
-  String get accountNoEntriesDesc => 'This account has no transactions yet.';
+  String get accountNoEntriesDesc => 'This asset has no transactions yet.';
 
   @override
   String accountEntriesTitle(String name) {
@@ -1248,9 +1248,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get commonNoneShort => 'None';
-
-  @override
-  String get commonGroup => 'Group';
 
   @override
   String get accountDelete => 'Delete account';
@@ -4764,17 +4761,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String assetValuationMissing(int count) {
-    return '$count accounts need an exchange rate';
+    return '$count assets need a base-currency amount';
   }
 
   @override
   String assetValuationMissingDesc(String currencies) {
-    return 'A rate from $currencies to the base currency is missing, so an incomplete asset total is not shown.';
+    return 'Enter the base-currency amount for $currencies.';
   }
 
   @override
-  String get assetTrendMissingRate =>
-      'There is no exchange rate available for valuation yet. Set a rate for today or earlier to show the asset trend.';
+  String get assetTrendMissingRate => 'No monthly asset records yet';
 
   @override
   String assetTrendPartialMissing(String currencies, String months) {
@@ -5024,12 +5020,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String aiTotalMissingRateLine(String codes) {
-    return 'Total unavailable, missing rates for $codes';
+    return 'Total unavailable: enter base-currency amounts for $codes';
   }
 
   @override
   String aiMissingRatesNetWorth(String codes, String page) {
-    return 'Some accounts are missing exchange rates ($codes), so total assets and net assets can\'t be shown. Add them under $page.';
+    return 'Enter base-currency amounts for $codes under $page.';
   }
 
   @override
@@ -5127,26 +5123,25 @@ class AppLocalizationsEn extends AppLocalizations {
   String get assetClassFixed => 'Fixed deposits';
 
   @override
+  String get assetClassMoneyMarket => 'Money market funds';
+
+  @override
   String get assetClassBond => 'Bond funds';
 
   @override
   String get assetClassEquity => 'Equity funds';
 
   @override
-  String get assetClassForeignFixed => 'Foreign fixed deposits';
+  String get assetClassForeignDemand => 'Foreign demand deposits';
 
   @override
-  String get assetClassForeignDemand => 'Foreign demand deposits';
+  String get assetClassForeignFixed => 'Foreign fixed deposits';
 
   @override
   String get assetClassOther => 'Other assets';
 
   @override
   String get assetMonthlyTitle => 'Monthly asset comparison';
-
-  @override
-  String get assetMonthlyDescription =>
-      'Record balances by account; group by asset class or bank';
 
   @override
   String get assetViewCategory => 'By asset class';
@@ -5216,4 +5211,34 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get assetSnapshotManualValue => 'Value in CNY';
+
+  @override
+  String get assetSnapshotAddHolding => 'Add asset to this month';
+
+  @override
+  String get assetSnapshotAddHoldingTitle => 'Choose assets to add';
+
+  @override
+  String get assetSnapshotAddHoldingEmpty =>
+      'Every current asset is already in this month';
+
+  @override
+  String accountMarketValueLabel(String code) {
+    return 'Market value ($code)';
+  }
+
+  @override
+  String get accountAdvancedSection => 'Card & credit (optional)';
+
+  @override
+  String get commonHelp => 'Help';
+
+  @override
+  String groupRowActions(String name) {
+    return '$name actions';
+  }
+
+  @override
+  String get assetHistoryMissing =>
+      'Months without saved records are left blank';
 }

@@ -83,6 +83,25 @@ String _money(num value, {bool withUnit = false}) => formatMoney(
 void main() {
   final now = DateTime(2026, 9, 12, 15);
 
+  test('小组件当前净资产使用手填人民币，不将它回填历史曲线', () {
+    final projection = buildWidgetBookProjection(
+      snapshot: _snapshot(
+        accounts: [
+          _account(initialBalance: 1000),
+          _account(
+            id: 'usd',
+            currencyCode: 'USD',
+            initialBalance: 0,
+          ).copyWith(baseValuation: 7100),
+        ],
+      ),
+      now: now,
+    );
+    final netWorth = projection.templates[WidgetTemplate.netWorth]!;
+    expect(netWorth.amount, _money(8100));
+    expect(netWorth.points, isNull);
+  });
+
   test('今日支出与曲线共用同一份逐日聚合，且与既有口径一致', () {
     final entries = <LedgerEntry>[
       _expense(id: 'today', amount: 37, occurredAt: DateTime(2026, 9, 12, 9)),

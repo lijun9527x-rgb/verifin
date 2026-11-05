@@ -73,7 +73,7 @@ class _AssetDisplaySettingsPageState extends State<AssetDisplaySettingsPage> {
       final groups = <AccountGroup>[
         ...controller.accountGroups,
         AccountGroup(
-          id: 'ungrouped',
+          id: ungroupedAccountGroupId,
           bookId: controller.activeBook.id,
           name: AppLocalizations.of(context).assetsUngrouped,
           sortOrder: 999,

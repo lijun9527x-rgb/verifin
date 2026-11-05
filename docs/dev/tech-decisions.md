@@ -64,6 +64,8 @@ Veri Fin 关键技术选型与理由。变更相关实现时同步更新本表�
 | 截图识账 OCR | `google_mlkit_text_recognition`（中文模型）端上离线识别，条件导入两件套 `screenshot_recognizer_*`；按字节识别时落临时文件走 `InputImage.fromFilePath`，识别完即删；`image_picker` 的相册/拍照缓存副本在读取后删除，用户原文件不动；其他 App 分享的 `content://` 图片由原生层分块读取并累计大小，超过 25 MB 立即停止；识别文本经 `requestCapturedEntryDraft`（无数字短路 + 4000 字截断）复用 AI 记账管线。应用锁启用时外部采集入口等解锁后再消费 | 图片不出设备契合本地优先；分享 URI 来自 exported 外部边界，不能先 `readBytes()` 全量分配后再检查，否则恶意/异常 ContentProvider 可造成 OOM。临时副本清理避免账单截图长期留在应用缓存；锁屏排队避免外部 Intent 在未解锁时触发 OCR/AI。ML Kit 的 release/R8 约束仍须用 CI APK 真机验证 |
 | 分享/外部采集入口 | `ShareReceiverActivity` 无界面跳板接收 `ACTION_SEND`（image/*、text/plain）与显式 `CAPTURE_TEXT` 意图（自动化工具用，`docs/product/automation.md`），转发回自家任务栈的 MainActivity 后立即 finish；MainActivity 暂存、Flutter 经 `consumeCaptureImage`/`consumeCaptureText` 拉取（仿快速记账 intent 模式）；原生限文本 8000 字、图片 25MB | `ACTION_SEND` 默认把目标 Activity 起在分享方任务栈，直指 MainActivity 会产生第二个 Flutter 引擎（双控制器写同一 SQLite）；跳板转发保持单实例、返回键回分享方。意图接口把「怎么触发」外包给自动化生态（学钱迹），一切入口只产草稿弹确认、绝不静默落账 |
 | 多币种账务口径 | 每账本一个锁定本位币、每账户一个币种；普通交易冻结原币 `amount`、账户实际金额 `accountAmount` 与本位币 `baseAmount`，跨币转账另存 `toAccountAmount`；预算/收支统计使用冻结本位币金额，账户余额使用账户实际金额 | 账户余额、消费币种和报表币种是三个不同事实；保存真实金额可避免银行结算舍入被单一汇率反推覆盖，修改汇率也不会让历史统计漂移。完整约束见 [multi-currency.md](multi-currency.md) |
+| 外币资产手填本位币金额 | 外币资产（`currencyCode !=` 本位币）在**账户**上另存一个可选的手填本位币金额 `Account.baseValuation`，录入页、资产详情和月度核对都可填；`convertAccountBalancesToBase` 通过 `baseValuationOf` 回调对它**直接取用、不查汇率、也不算过期**，为空时等待手动填写，不回退汇率。资产汇总口径（资产页净资产、容器小计、首页与个人页总资产）统一读它 | 用户不该为了看总资产被迫维护汇率表。手填金额是用户对「这笔外币值多少人民币」的直接陈述，比任何离线汇率更贴近事实；当前总额直接采用手填金额，缺金额不展示部分和；0是有效金额，原币余额为0不忽略手填值。它只驱动**汇总**，不改写原币余额、不生成流水、不影响交易层面的 `baseAmount`，因此历史报表与对账口径不变 |
+| 手填金额与月度快照金额不合并 | 当前金额（`baseValuation`）与月度快照的 `baseBalance` 是两份独立的手填数据，互不覆盖；资产页的历史走势图读取已保存月度快照，当前月取当前汇总，缺失月份留空 | 月度快照的语义是「历史不可变」，当前金额的语义是「可随时核对」；合并会让改历史或改当前互相污染。当前手填值只有一个时点，不能用于反推历史；小组件没有外币每日记录时仅显示当前总额。边界与触发阈值见 [known-limitations.md](known-limitations.md) 的 L16 |
 | 离线汇率 | `exchange_rates` 按账本、外币、生效日保存 `1 外币 = X 本位币`；只查目标日当天或之前的最近记录，不使用未来记录。本地手工维护，导入汇率默认只冻结当前交易，用户在预览中明确开启后才保存 | 保持无自有服务端、无后台联网；缺率时返回类型化缺失状态，不用 1:1 猜测，也不展示不完整资产总额 |
 | 金额小数位显示 | 金额小数风格为 `CurrencyFractionStyle.standard/compact`，存 KV `verifin.currency_fraction_style.v1`（枚举名）；旧键 `verifin.amount_format.v1`（`'true'/'false'`）与旧备份字段 `amountForceTwoDecimals` 只做一次性兼容读入，之后只写新键；格式化按 ISO 4217 minor unit（JPY 0 位、CNY/USD 2 位、KWD 3 位），由 controller 单向同步到无 context 的顶层格式化状态 | 两位小数不是所有货币的合法精度；旧 KV 键与旧备份字段只做一次性兼容读入（升级、旧备份都无突变），之后只用枚举名，同时使小组件、通知和纯函数共用一个无 context 入口 |
 | 主题色呈现 | 设置页保存 `ThemeColorPreference`：`defaultColor` 保留原有 `veriRoyal` 并作为新安装默认；`system` 使用 Flutter `ThemeData(useSystemColors: true)` 获取 Android 系统动态色，平台不支持时回退默认；`custom` 保存不透明 ARGB 并直接作为 `ColorScheme.primary`。主交互从 `colorScheme.primary` 读取，收入/支出/转账/提醒等语义色不跟随主题色；主题色随现有 `themePreference` 一起进入导出/导入 JSON，旧备份缺字段回退默认 | Material 3 负责配套容器角色；自定义模式仅自动选择 `onPrimary` 黑/白前景以保持可读性，不把用户选中的主色替换成另一种颜色，也不引入全局可变当前颜色 |
@@ -94,7 +96,7 @@ Veri Fin 关键技术选型与理由。变更相关实现时同步更新本表�
 
 ## 账户类型能力矩阵
 
-`AccountType`（`models.dart`）共六种，顺序即选择器展示顺序。两项能力互相独立、各由一个 getter 判定，**新增账户能力相关逻辑一律走这两个 getter，勿硬编码具体类型**：
+`AccountType`（`models.dart`）共六种，顺序即选择器展示顺序。两项能力互相独立、各由一个 getter 判定，**新增账户能力相关逻辑一律走这两个 getter，勿硬编码具体类型**。资产性质由 `Account.assetClass`（活期、定期、货币基金、债券基金、股票类基金、外币活期、外币定期、其他）表达，与账户能力正交：录入页把账户类型收在可展开的「卡片与信用（选填）」里，用户先选的是资产类别，不必先做一次类型选择。
 
 - `supportsCardLast4`（完整卡号 + 后四位）：仅 **信用卡 / 储蓄卡**。
 - `supportsCredit`（信用额度 / 账单日 / 还款日 / 还款）：仅 **信用卡 / 信用账户**。

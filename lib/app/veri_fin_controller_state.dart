@@ -172,7 +172,7 @@ mixin _ControllerState on ChangeNotifier {
   bool _privacyConsentAccepted = false;
   bool _onboardingCompleted = false;
   AppLockConfig _appLockConfig = const AppLockConfig.none();
-  AssetAccountViewMode _assetAccountViewMode = AssetAccountViewMode.type;
+  AssetAccountViewMode _assetAccountViewMode = AssetAccountViewMode.group;
   BackupSettings _backupSettings = const BackupSettings();
   String _backupPassphrase = '';
   WebdavConfig _webdavConfig = const WebdavConfig();

@@ -1123,7 +1123,7 @@ List<({String title, List<Account> accounts})> _accountPickerSections(
       sections: <AccountGroup>[
         ...controller.accountGroups,
         AccountGroup(
-          id: 'ungrouped',
+          id: ungroupedAccountGroupId,
           bookId: controller.activeBook.id,
           name: l10n.assetsUngrouped,
           sortOrder: 999,
@@ -1136,7 +1136,7 @@ List<({String title, List<Account> accounts})> _accountPickerSections(
         mode: mode,
         sectionId: group.id,
         accounts: accounts.where(
-          (account) => (account.groupId ?? 'ungrouped') == group.id,
+          (account) => (account.groupId ?? ungroupedAccountGroupId) == group.id,
         ),
       );
       if (inGroup.isNotEmpty) {
@@ -1667,6 +1667,7 @@ Future<String?> showTextInputDialog({
     builder: (context) => AlertDialog(
       title: Text(title),
       content: TextField(
+        key: const Key('text_input_dialog_field'),
         controller: controller,
         autofocus: true,
         keyboardType: keyboardType,

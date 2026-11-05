@@ -1787,7 +1787,7 @@ abstract class AppLocalizations {
   /// No description provided for @assetsUngrouped.
   ///
   /// In zh, this message translates to:
-  /// **'未分组'**
+  /// **'未归类'**
   String get assetsUngrouped;
 
   /// No description provided for @netAssets.
@@ -1829,25 +1829,25 @@ abstract class AppLocalizations {
   /// No description provided for @assetsEmptyTitle.
   ///
   /// In zh, this message translates to:
-  /// **'还没有资产账户'**
+  /// **'还没有资产'**
   String get assetsEmptyTitle;
 
   /// No description provided for @assetsEmptyDesc.
   ///
   /// In zh, this message translates to:
-  /// **'请先点击右上角添加资产，之后可以在这里按类型或分组查看资产。'**
+  /// **'先添加银行卡或平台，再往里面添加实际持有的资产。'**
   String get assetsEmptyDesc;
 
   /// No description provided for @assetsEmptyAddAction.
   ///
   /// In zh, this message translates to:
-  /// **'添加第一个账户'**
+  /// **'添加银行卡／平台'**
   String get assetsEmptyAddAction;
 
   /// No description provided for @hiddenAccountsCount.
   ///
   /// In zh, this message translates to:
-  /// **'{count}个隐藏账户'**
+  /// **'{count}项隐藏资产'**
   String hiddenAccountsCount(int count);
 
   /// No description provided for @assetsCoverTitle.
@@ -1865,13 +1865,13 @@ abstract class AppLocalizations {
   /// No description provided for @assetViewModeLabel.
   ///
   /// In zh, this message translates to:
-  /// **'账户分区方式'**
+  /// **'资产分区方式'**
   String get assetViewModeLabel;
 
   /// No description provided for @assetOrderHint.
   ///
   /// In zh, this message translates to:
-  /// **'拖动分区手柄或长按账户调整顺序'**
+  /// **'拖动分区手柄或长按资产调整顺序'**
   String get assetOrderHint;
 
   /// No description provided for @coverUseOnline.
@@ -1925,13 +1925,13 @@ abstract class AppLocalizations {
   /// No description provided for @accountAdd.
   ///
   /// In zh, this message translates to:
-  /// **'添加账户'**
+  /// **'添加资产'**
   String get accountAdd;
 
   /// No description provided for @groupManage.
   ///
   /// In zh, this message translates to:
-  /// **'管理分组'**
+  /// **'管理银行卡／平台'**
   String get groupManage;
 
   /// No description provided for @sortLabel.
@@ -1943,49 +1943,49 @@ abstract class AppLocalizations {
   /// No description provided for @hiddenAccountsTitle.
   ///
   /// In zh, this message translates to:
-  /// **'隐藏账户'**
+  /// **'隐藏资产'**
   String get hiddenAccountsTitle;
 
   /// No description provided for @hiddenAccountsEmptyTitle.
   ///
   /// In zh, this message translates to:
-  /// **'暂无隐藏账户'**
+  /// **'暂无隐藏资产'**
   String get hiddenAccountsEmptyTitle;
 
   /// No description provided for @hiddenAccountsEmptyDesc.
   ///
   /// In zh, this message translates to:
-  /// **'隐藏账户会在这里集中展示。'**
+  /// **'隐藏资产会在这里集中展示。'**
   String get hiddenAccountsEmptyDesc;
 
   /// No description provided for @accountGroupsTitle.
   ///
   /// In zh, this message translates to:
-  /// **'账户分组'**
+  /// **'银行卡／平台'**
   String get accountGroupsTitle;
 
   /// No description provided for @groupAdd.
   ///
   /// In zh, this message translates to:
-  /// **'新增分组'**
+  /// **'添加银行卡／平台'**
   String get groupAdd;
 
   /// No description provided for @groupsEmptyTitle.
   ///
   /// In zh, this message translates to:
-  /// **'还没有账户分组'**
+  /// **'还没有银行卡／平台'**
   String get groupsEmptyTitle;
 
   /// No description provided for @groupsEmptyDesc.
   ///
   /// In zh, this message translates to:
-  /// **'点击右上角加号创建分组，用来整理不同账户。'**
+  /// **'添加银行卡或平台，用来汇总里面的资产。'**
   String get groupsEmptyDesc;
 
   /// No description provided for @accountsCount.
   ///
   /// In zh, this message translates to:
-  /// **'{count}个账户'**
+  /// **'{count}项资产'**
   String accountsCount(int count);
 
   /// No description provided for @commonRename.
@@ -2003,37 +2003,37 @@ abstract class AppLocalizations {
   /// No description provided for @groupRenameTitle.
   ///
   /// In zh, this message translates to:
-  /// **'重命名分组'**
+  /// **'重命名银行卡／平台'**
   String get groupRenameTitle;
 
   /// No description provided for @groupNameLabel.
   ///
   /// In zh, this message translates to:
-  /// **'分组名称'**
+  /// **'名称'**
   String get groupNameLabel;
 
   /// No description provided for @groupDeleteTitle.
   ///
   /// In zh, this message translates to:
-  /// **'删除分组'**
+  /// **'删除银行卡／平台'**
   String get groupDeleteTitle;
 
   /// No description provided for @groupDeleteMessage.
   ///
   /// In zh, this message translates to:
-  /// **'确定删除“{name}”分组吗？'**
+  /// **'确定删除“{name}”吗？'**
   String groupDeleteMessage(String name);
 
   /// No description provided for @groupDeleteInUseMessage.
   ///
   /// In zh, this message translates to:
-  /// **'删除“{name}”分组后，其中 {count} 个账户将移到“未分组”。账户和交易不会被删除。'**
+  /// **'删除“{name}”后，其中 {count} 项资产将移到“未归类”。资产和交易不会被删除。'**
   String groupDeleteInUseMessage(String name, int count);
 
   /// No description provided for @accountIconLabel.
   ///
   /// In zh, this message translates to:
-  /// **'账户图标'**
+  /// **'资产图标'**
   String get accountIconLabel;
 
   /// No description provided for @accountTypeLabel.
@@ -2045,13 +2045,13 @@ abstract class AppLocalizations {
   /// No description provided for @accountNameLabel.
   ///
   /// In zh, this message translates to:
-  /// **'账户名称'**
+  /// **'资产名称'**
   String get accountNameLabel;
 
   /// No description provided for @accountNameRequired.
   ///
   /// In zh, this message translates to:
-  /// **'账户名称必填'**
+  /// **'资产名称必填'**
   String get accountNameRequired;
 
   /// No description provided for @cardLast4Label.
@@ -2129,19 +2129,19 @@ abstract class AppLocalizations {
   /// No description provided for @accountBalanceLabel.
   ///
   /// In zh, this message translates to:
-  /// **'账户余额'**
+  /// **'资产余额'**
   String get accountBalanceLabel;
 
   /// No description provided for @accountNoteLabel.
   ///
   /// In zh, this message translates to:
-  /// **'账户备注'**
+  /// **'资产备注'**
   String get accountNoteLabel;
 
   /// No description provided for @accountGroupLabel.
   ///
   /// In zh, this message translates to:
-  /// **'账户分组'**
+  /// **'所属银行卡／平台'**
   String get accountGroupLabel;
 
   /// No description provided for @accountTypePickerTitle.
@@ -2153,7 +2153,7 @@ abstract class AppLocalizations {
   /// No description provided for @accountGroupPickerTitle.
   ///
   /// In zh, this message translates to:
-  /// **'选择账户分组'**
+  /// **'选择所属银行卡／平台'**
   String get accountGroupPickerTitle;
 
   /// No description provided for @balanceAdjustTooltip.
@@ -2213,7 +2213,7 @@ abstract class AppLocalizations {
   /// No description provided for @accountNoEntriesDesc.
   ///
   /// In zh, this message translates to:
-  /// **'该账户还没有交易记录。'**
+  /// **'该资产还没有交易记录。'**
   String get accountNoEntriesDesc;
 
   /// No description provided for @accountEntriesTitle.
@@ -2371,12 +2371,6 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'无'**
   String get commonNoneShort;
-
-  /// No description provided for @commonGroup.
-  ///
-  /// In zh, this message translates to:
-  /// **'分组'**
-  String get commonGroup;
 
   /// No description provided for @accountDelete.
   ///
@@ -8411,19 +8405,19 @@ abstract class AppLocalizations {
   /// No description provided for @assetValuationMissing.
   ///
   /// In zh, this message translates to:
-  /// **'有 {count} 个账户待设置汇率'**
+  /// **'有 {count} 项资产待填写金额'**
   String assetValuationMissing(int count);
 
   /// No description provided for @assetValuationMissingDesc.
   ///
   /// In zh, this message translates to:
-  /// **'缺少 {currencies} 对本位币的汇率，暂不显示不完整的资产总额。'**
+  /// **'请填写 {currencies} 对应的本位币金额。'**
   String assetValuationMissingDesc(String currencies);
 
   /// No description provided for @assetTrendMissingRate.
   ///
   /// In zh, this message translates to:
-  /// **'还没有可用于折算的历史汇率，设置今天或更早的汇率后显示资产走势。'**
+  /// **'暂无月度资产记录'**
   String get assetTrendMissingRate;
 
   /// No description provided for @assetTrendPartialMissing.
@@ -8779,13 +8773,13 @@ abstract class AppLocalizations {
   /// No description provided for @aiTotalMissingRateLine.
   ///
   /// In zh, this message translates to:
-  /// **'合计因缺汇率无法给出（缺 {codes}）'**
+  /// **'合计暂不可用，{codes} 资产未填写对应本位币金额'**
   String aiTotalMissingRateLine(String codes);
 
   /// No description provided for @aiMissingRatesNetWorth.
   ///
   /// In zh, this message translates to:
-  /// **'有账户缺少汇率（{codes}），无法给出总资产与净资产；请先在「{page}」补齐。'**
+  /// **'{codes} 资产未填写对应本位币金额，请在{page}中补齐。'**
   String aiMissingRatesNetWorth(String codes, String page);
 
   /// No description provided for @aiNetWorthSummary.
@@ -8914,6 +8908,12 @@ abstract class AppLocalizations {
   /// **'定期存款'**
   String get assetClassFixed;
 
+  /// No description provided for @assetClassMoneyMarket.
+  ///
+  /// In zh, this message translates to:
+  /// **'货币基金'**
+  String get assetClassMoneyMarket;
+
   /// No description provided for @assetClassBond.
   ///
   /// In zh, this message translates to:
@@ -8926,17 +8926,17 @@ abstract class AppLocalizations {
   /// **'股票类基金'**
   String get assetClassEquity;
 
-  /// No description provided for @assetClassForeignFixed.
-  ///
-  /// In zh, this message translates to:
-  /// **'外币定期'**
-  String get assetClassForeignFixed;
-
   /// No description provided for @assetClassForeignDemand.
   ///
   /// In zh, this message translates to:
   /// **'外币活期'**
   String get assetClassForeignDemand;
+
+  /// No description provided for @assetClassForeignFixed.
+  ///
+  /// In zh, this message translates to:
+  /// **'外币定期'**
+  String get assetClassForeignFixed;
 
   /// No description provided for @assetClassOther.
   ///
@@ -8949,12 +8949,6 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'月度资产对照'**
   String get assetMonthlyTitle;
-
-  /// No description provided for @assetMonthlyDescription.
-  ///
-  /// In zh, this message translates to:
-  /// **'按账户记录余额，按资产类别或银行卡汇总'**
-  String get assetMonthlyDescription;
 
   /// No description provided for @assetViewCategory.
   ///
@@ -9081,6 +9075,54 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'对应人民币金额'**
   String get assetSnapshotManualValue;
+
+  /// No description provided for @assetSnapshotAddHolding.
+  ///
+  /// In zh, this message translates to:
+  /// **'添加资产到本月'**
+  String get assetSnapshotAddHolding;
+
+  /// No description provided for @assetSnapshotAddHoldingTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'选择要补入的资产'**
+  String get assetSnapshotAddHoldingTitle;
+
+  /// No description provided for @assetSnapshotAddHoldingEmpty.
+  ///
+  /// In zh, this message translates to:
+  /// **'当前资产都已在本月记录中'**
+  String get assetSnapshotAddHoldingEmpty;
+
+  /// No description provided for @accountMarketValueLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'当前市值（{code}）'**
+  String accountMarketValueLabel(String code);
+
+  /// No description provided for @accountAdvancedSection.
+  ///
+  /// In zh, this message translates to:
+  /// **'卡片与信用（选填）'**
+  String get accountAdvancedSection;
+
+  /// No description provided for @commonHelp.
+  ///
+  /// In zh, this message translates to:
+  /// **'帮助'**
+  String get commonHelp;
+
+  /// No description provided for @groupRowActions.
+  ///
+  /// In zh, this message translates to:
+  /// **'{name}操作'**
+  String groupRowActions(String name);
+
+  /// No description provided for @assetHistoryMissing.
+  ///
+  /// In zh, this message translates to:
+  /// **'未保存的月份留空'**
+  String get assetHistoryMissing;
 }
 
 class _AppLocalizationsDelegate

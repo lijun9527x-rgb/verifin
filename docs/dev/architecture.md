@@ -2,8 +2,6 @@
 
 执行规则以 [AGENTS.md](../../AGENTS.md) 为准；这里仅提供源码导航，不重复维护规则。
 
-下一轮开发建议见 [分类预算与资产录入改进说明](personal-finance-next-changes.md)，其中目标行为尚未实现，不能替代当前源码与领域文档。
-
 Veri Fin 仅交付 Android，权威账目在本机 SQLite，无账号或自有服务端。
 正式入口为 `lib/main.dart`；UI 通过 `VeriFinScope` 读取 `VeriFinController`，
 Controller 经 repository 写库。`VeriFinController.create()` 是生产初始化入口；

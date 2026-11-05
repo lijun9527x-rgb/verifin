@@ -65,7 +65,7 @@
 | `trend` | 某时间段某类型的趋势序列（短范围按天、长范围按月） | `type`,`range` | `reportTrend` | Trend |
 | `compare` | 指定月份与上月、去年同月的收支环比 / 同比 | `month` | `reportMonthlyComparison` | Stat |
 | `accountsOverview` | 各账户名称、币种与余额一览（不含隐藏账户；隐藏单位时整列不输出「币种」） | — | `ctx.balanceOf` + `convertAccountBalancesToBase` | Table |
-| `netWorth` | 总资产 / 总负债 / 净资产（本位币口径） | — | `convertAccountBalancesToBase` | Stat |
+| `netWorth` | 总资产 / 总负债 / 净资产（外币直接采用手填本位币金额；缺金额不返回部分总和） | — | `convertAccountBalancesToBase` | Stat |
 | `creditCardBill` | 信用类账户的欠款、可用额度、本期账单与还款日；多币种时表格保留币种列 | — | `credit_card.dart` | Table |
 | `budgetStatus` | 某预算期的预算、已花、剩余、剩余日均与需要关注的分类（预算口径，排除标记「不计入预算」的支出） | `month` | `budget_status.dart` | Stat |
 

@@ -105,7 +105,9 @@ class _AccountDetailPageState extends State<AccountDetailPage> {
                   title: currentAccount.name,
                   subtitle: currencyUnitSubtitle(
                     AppLocalizations.of(context),
-                    currentAccount.type.label(AppLocalizations.of(context)),
+                    currentAccount.assetClass.label(
+                      AppLocalizations.of(context),
+                    ),
                     currentAccount.currencyCode,
                   ),
                   showBack: true,
@@ -340,31 +342,6 @@ class _AccountDetailPageState extends State<AccountDetailPage> {
                         ),
                       ),
                       const Divider(height: 1),
-                      AnchoredMenuChoice<AccountType>(
-                        key: const Key('account_detail_type_choice'),
-                        values: AccountType.values,
-                        selected: currentAccount.type,
-                        idOf: (value) => 'account_detail_type_${value.name}',
-                        labelOf: (value) =>
-                            value.label(AppLocalizations.of(context)),
-                        subtitleOf: (value) =>
-                            value.capabilityHint(AppLocalizations.of(context)),
-                        onSelected: (value) =>
-                            _selectAccountType(currentAccount, value),
-                        semanticLabel: AppLocalizations.of(
-                          context,
-                        ).accountTypePickerTitle,
-                        builder: (context, openMenu, menuOpen) => SettingsRow(
-                          icon: Icons.category_outlined,
-                          title: AppLocalizations.of(context).commonType,
-                          trailing: currentAccount.type.label(
-                            AppLocalizations.of(context),
-                          ),
-                          trailingIcon: Icons.chevron_right,
-                          onTap: openMenu,
-                        ),
-                      ),
-                      const Divider(height: 1),
                       SettingsRow(
                         icon: Icons.badge_outlined,
                         title: AppLocalizations.of(context).commonName,
@@ -401,6 +378,27 @@ class _AccountDetailPageState extends State<AccountDetailPage> {
                           currentAccount,
                         ),
                       ),
+                      // 外币资产按手填的本位币金额计入资产汇总，不要求维护汇率。
+                      if (currentAccount.currencyCode !=
+                          controller.activeBook.baseCurrencyCode) ...<Widget>[
+                        const Divider(height: 1),
+                        SettingsRow(
+                          key: const Key('account_detail_base_valuation'),
+                          icon: Icons.payments_outlined,
+                          title: baseCurrencyValuationLabel(
+                            AppLocalizations.of(context),
+                            controller.activeBook.baseCurrencyCode,
+                          ),
+                          trailing: currentAccount.baseValuation == null
+                              ? AppLocalizations.of(context).notSet
+                              : formatUserMoney(
+                                  currentAccount.baseValuation!,
+                                  controller.activeBook.baseCurrencyCode,
+                                ),
+                          trailingIcon: Icons.chevron_right,
+                          onTap: () => _editBaseValuation(currentAccount),
+                        ),
+                      ],
                       const Divider(height: 1),
                       SettingsRow(
                         icon: Icons.notes,
@@ -413,11 +411,37 @@ class _AccountDetailPageState extends State<AccountDetailPage> {
                       ),
                       const Divider(height: 1),
                       SettingsRow(
-                        icon: Icons.folder_outlined,
-                        title: AppLocalizations.of(context).commonGroup,
+                        icon: Icons.account_balance_outlined,
+                        title: AppLocalizations.of(context).accountGroupLabel,
                         trailing: groupName,
                         trailingIcon: Icons.chevron_right,
                         onTap: () => _pickAccountGroup(currentAccount),
+                      ),
+                      const Divider(height: 1),
+                      // 账户类型只决定卡号、额度等能力，放在资产属性之后。
+                      AnchoredMenuChoice<AccountType>(
+                        key: const Key('account_detail_type_choice'),
+                        values: AccountType.values,
+                        selected: currentAccount.type,
+                        idOf: (value) => 'account_detail_type_${value.name}',
+                        labelOf: (value) =>
+                            value.label(AppLocalizations.of(context)),
+                        subtitleOf: (value) =>
+                            value.capabilityHint(AppLocalizations.of(context)),
+                        onSelected: (value) =>
+                            _selectAccountType(currentAccount, value),
+                        semanticLabel: AppLocalizations.of(
+                          context,
+                        ).accountTypePickerTitle,
+                        builder: (context, openMenu, menuOpen) => SettingsRow(
+                          icon: Icons.category_outlined,
+                          title: AppLocalizations.of(context).accountTypeLabel,
+                          trailing: currentAccount.type.label(
+                            AppLocalizations.of(context),
+                          ),
+                          trailingIcon: Icons.chevron_right,
+                          onTap: openMenu,
+                        ),
                       ),
                     ],
                   ),
@@ -748,11 +772,34 @@ class _AccountDetailPageState extends State<AccountDetailPage> {
       ),
     );
     if (selected != null && mounted) {
-      setState(
-        () =>
-            _draftAccount = accountDraft.copyWith(currencyCode: selected.code),
-      );
+      setState(() {
+        _draftAccount = accountDraft.copyWith(
+          currencyCode: selected.code,
+          // 换回账本本位币后不再需要单独填写金额。
+          clearBaseValuation:
+              selected.code == controller.activeBook.baseCurrencyCode,
+        );
+      });
     }
+  }
+
+  /// 外币资产对应的本位币金额直接填写，0 也是有效金额。
+  Future<void> _editBaseValuation(Account account) async {
+    final baseCode = VeriFinScope.of(context).activeBook.baseCurrencyCode;
+    final value = await showNumberPadSheet(
+      context,
+      title: baseCurrencyValuationLabel(AppLocalizations.of(context), baseCode),
+      initialAmount: account.baseValuation,
+      allowNegative: true,
+      allowZero: true,
+      currencyCode: baseCode,
+    );
+    if (value == null || !mounted) {
+      return;
+    }
+    setState(() {
+      _draftAccount = account.copyWith(baseValuation: value);
+    });
   }
 
   Future<void> _editAccountName(Account account) async {
@@ -896,14 +943,17 @@ class _AccountDetailPageState extends State<AccountDetailPage> {
   Future<void> _pickAccountGroup(Account account) async {
     final controller = VeriFinScope.of(context);
     final groups = controller.accountGroups;
-    final values = <String>['ungrouped', ...groups.map((group) => group.id)];
+    final values = <String>[
+      ungroupedAccountGroupId,
+      ...groups.map((group) => group.id),
+    ];
     final selected = await showOptionSheet<String>(
       context: context,
       title: AppLocalizations.of(context).accountGroupPickerTitle,
       values: values,
-      selected: account.groupId ?? 'ungrouped',
+      selected: account.groupId ?? ungroupedAccountGroupId,
       labelOf: (value) {
-        if (value == 'ungrouped') {
+        if (value == ungroupedAccountGroupId) {
           return AppLocalizations.of(context).assetsUngrouped;
         }
         return groups.firstWhere((group) => group.id == value).name;
