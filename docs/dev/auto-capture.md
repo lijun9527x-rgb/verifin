@@ -1,5 +1,7 @@
 # 截图识账与外部意图接口
 
+外部实现参考：[花有谱页面自动记账：实现与接入评估](huayoupu-auto-accounting.md)。该文档仅记录调研，不改变下述功能与权限边界。
+
 Veri Fin 本体不监听任何通知或屏幕：不注册 `NotificationListenerService`、不注册 `AccessibilityService`、不申请短信权限。自动记账能力由两条**用户主动触发**的路线提供，全部只产草稿、绝不静默落账。
 
 ## 路线 A · 截图识别
