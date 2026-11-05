@@ -33,6 +33,25 @@ bool validAssetSnapshot(
       return false;
     }
     final rate = holding.rateToBase;
+    if (holding.currencyCode != snapshot.baseCurrencyCode && rate == null) {
+      // 外币估值是用户独立录入的本位币金额，不从汇率推导或反推。
+      final value = holding.baseBalance;
+      if (value != null &&
+          (!value.isFinite ||
+              !(value *
+                      math.pow(
+                        10,
+                        CurrencyCatalog.require(
+                          snapshot.baseCurrencyCode,
+                        ).minorUnit,
+                      ))
+                  .isFinite ||
+              normalizeCurrencyAmount(value, snapshot.baseCurrencyCode) !=
+                  value)) {
+        return false;
+      }
+      continue;
+    }
     if (rate != null && !isValidExchangeRate(rate)) return false;
     if (currencyRates.containsKey(holding.currencyCode) &&
         currencyRates[holding.currencyCode] != rate) {

@@ -262,7 +262,7 @@ class AssetSnapshotEditorPage extends StatefulWidget {
 class _AssetSnapshotEditorPageState extends State<AssetSnapshotEditorPage> {
   AssetMonthSnapshot? _template;
   final Map<String, double> _balances = {};
-  final Map<String, double> _rates = {};
+  final Map<String, double> _baseBalances = {};
   bool _saving = false;
   bool _dirty = false;
   final EditorExitController _exit = EditorExitController();
@@ -292,16 +292,22 @@ class _AssetSnapshotEditorPageState extends State<AssetSnapshotEditorPage> {
     });
   }
 
-  Future<void> _rate(AssetHoldingSnapshot holding) async {
+  Future<void> _baseValue(AssetHoldingSnapshot holding) async {
+    final code = _template!.baseCurrencyCode;
+    final l10n = AppLocalizations.of(context);
     final value = await showNumberPadSheet(
       context,
-      title: '${holding.currencyCode} → ${_template!.baseCurrencyCode}',
-      initialAmount: _rates[holding.currencyCode] ?? holding.rateToBase,
-      maxFractionDigits: 10,
+      title: code == 'CNY'
+          ? l10n.assetSnapshotManualValue
+          : l10n.baseCurrencyAmountLabel(code),
+      initialAmount: _baseBalances[holding.accountId] ?? holding.baseBalance,
+      currencyCode: code,
+      allowZero: true,
+      allowNegative: true,
     );
     if (!mounted || value == null) return;
     setState(() {
-      _rates[holding.currencyCode] = value;
+      _baseBalances[holding.accountId] = value;
       _dirty = true;
     });
   }
@@ -323,7 +329,7 @@ class _AssetSnapshotEditorPageState extends State<AssetSnapshotEditorPage> {
       widget.month,
       template: _template,
       balances: _balances,
-      rates: _rates,
+      baseBalances: _baseBalances,
     );
     final saved = await controller.saveAssetSnapshot(snapshot);
     if (!mounted) return saved;
@@ -356,9 +362,8 @@ class _AssetSnapshotEditorPageState extends State<AssetSnapshotEditorPage> {
       widget.month,
       template: _template,
       balances: _balances,
-      rates: _rates,
+      baseBalances: _baseBalances,
     );
-    final currencies = <String>{};
     return UnsavedChangesGuard(
       isDirty: _dirty,
       onSave: _save,
@@ -396,16 +401,21 @@ class _AssetSnapshotEditorPageState extends State<AssetSnapshotEditorPage> {
                     onTap: _saving ? null : () => _balance(holding),
                   ),
                   const SizedBox(height: 10),
-                  if (holding.currencyCode != draft.baseCurrencyCode &&
-                      currencies.add(holding.currencyCode)) ...[
+                  if (holding.currencyCode != draft.baseCurrencyCode) ...[
                     SelectField(
-                      label:
-                          '${holding.currencyCode} → ${draft.baseCurrencyCode}',
-                      value: holding.rateToBase == null
+                      label: draft.baseCurrencyCode == 'CNY'
+                          ? l10n.assetSnapshotManualValue
+                          : l10n.baseCurrencyAmountLabel(
+                              draft.baseCurrencyCode,
+                            ),
+                      value: holding.baseBalance == null
                           ? l10n.notSet
-                          : formatRateValue(holding.rateToBase!),
-                      icon: Icons.currency_exchange,
-                      onTap: _saving ? null : () => _rate(holding),
+                          : formatUserMoney(
+                              holding.baseBalance!,
+                              draft.baseCurrencyCode,
+                            ),
+                      icon: Icons.payments_outlined,
+                      onTap: _saving ? null : () => _baseValue(holding),
                     ),
                     const SizedBox(height: 10),
                   ],

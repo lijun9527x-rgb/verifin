@@ -59,8 +59,9 @@ void main() {
     for (final brightness in Brightness.values) {
       for (final language in ['zh', 'en']) {
         testWidgets('个人财务页面 $width $brightness $language 无溢出', (tester) async {
-          await tester.binding.setSurfaceSize(Size(width, 852));
-          addTearDown(() => tester.binding.setSurfaceSize(null));
+          tester.view.devicePixelRatio = 1;
+          tester.view.physicalSize = Size(width, 852);
+          addTearDown(tester.view.reset);
           final controller = await makeController();
           await controller.addAccountGroup('招行卡');
           await controller.addAccountGroup('中行卡');
@@ -101,7 +102,7 @@ void main() {
               controller.buildAssetSnapshot(
                 DateTime(now.year, now.month + offset),
                 balances: {'cash': 12000 + offset * 500.0},
-                rates: {'USD': 7.12 + offset * .02},
+                baseBalances: {'usd': 7120 + offset * 20.0},
               ),
             );
           }

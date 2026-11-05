@@ -58,7 +58,10 @@ void main() {
     final month = DateTime(2026, 1);
     expect(
       await controller.saveAssetSnapshot(
-        controller.buildAssetSnapshot(month, rates: {'USD': 7.1}),
+        controller.buildAssetSnapshot(
+          month,
+          baseBalances: {'monthly-usd': 710},
+        ),
       ),
       isTrue,
     );

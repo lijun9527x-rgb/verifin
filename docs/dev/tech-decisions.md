@@ -117,6 +117,6 @@ Veri Fin 关键技术选型与理由。变更相关实现时同步更新本表�
 
 ## 月度资产与分类预算
 
-资产快照、账户资产类别及统一支出账户的口径见 [monthly-assets.md](monthly-assets.md)。SQLite v20 新增 `accounts.asset_class` 和 `asset_month_snapshots`；快照保留当月的名称、分类、原币余额及汇率，不随当前账户变动而回算。首页 `budget` 面板使用分类预算列表，总预算继续由预算总览管理。
+资产快照、账户资产类别及统一支出账户的口径见 [monthly-assets.md](monthly-assets.md)。SQLite v20 新增 `accounts.asset_class` 和 `asset_month_snapshots`；快照保留当月的名称、分类、原币余额及手填人民币估值，不随当前账户变动而回算。首页 `budget` 面板使用分类预算列表，总预算继续由预算总览管理。
 
 备份范围补充：账户 `assetClass`、`assetSnapshots` 全部进入备份；`defaultAccountIds` 沿用现有导出/导入逻辑，作为按账本指定的统一支出账户恢复。旧备份缺分类时回落 `other`，缺快照时恢复为空，不生成历史估值。

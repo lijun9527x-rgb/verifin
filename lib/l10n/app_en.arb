@@ -2029,7 +2029,7 @@
   "assetViewAccount": "By account",
   "assetSnapshotEdit": "Reconcile balances",
   "assetSnapshotSave": "Save monthly snapshot",
-  "assetSnapshotHelp": "Enter native-currency balances or fund market values. Saving freezes balances and rates without changing transactions.",
+  "assetSnapshotHelp": "Enter account balances or fund market values. Enter the base-currency value of foreign accounts directly; no exchange rate is needed. Snapshots do not change transactions.",
   "assetSnapshotOverwrite": "This month already has a snapshot. Saving replaces only this month.",
   "assetSnapshotSaved": "Monthly asset snapshot saved",
   "assetSnapshotMissing": "No saved snapshot",
@@ -2039,9 +2039,10 @@
   "assetSnapshotChange": "Change from previous month",
   "assetSnapshotGroup": "Account / group",
   "assetSnapshotTotal": "Total net assets",
-  "assetSnapshotRates": "Totals use the base-currency values frozen in each snapshot. Incomplete totals are hidden when rates are missing.",
+  "assetSnapshotRates": "Totals use manually entered base-currency values. Incomplete totals are hidden when a value is missing.",
   "homeCategoryBudgetEmpty": "Set category budgets once to carry them into each month",
   "expenseAccountFixed": "New everyday expenses use the designated account. Existing expenses keep their original account.",
   "assetSnapshotSavedState": "Saved",
-  "expenseAccountInvalid": "The designated expense account is unavailable or a conversion rate is missing. Check account settings and rates."
+  "expenseAccountInvalid": "The designated expense account is unavailable or a conversion rate is missing. Check account settings and rates.",
+  "assetSnapshotManualValue": "Value in CNY"
 }

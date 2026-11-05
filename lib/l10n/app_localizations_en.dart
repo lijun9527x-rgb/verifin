@@ -5160,7 +5160,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get assetSnapshotHelp =>
-      'Enter native-currency balances or fund market values. Saving freezes balances and rates without changing transactions.';
+      'Enter account balances or fund market values. Enter the base-currency value of foreign accounts directly; no exchange rate is needed. Snapshots do not change transactions.';
 
   @override
   String get assetSnapshotOverwrite =>
@@ -5192,7 +5192,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get assetSnapshotRates =>
-      'Totals use the base-currency values frozen in each snapshot. Incomplete totals are hidden when rates are missing.';
+      'Totals use manually entered base-currency values. Incomplete totals are hidden when a value is missing.';
 
   @override
   String get homeCategoryBudgetEmpty =>
@@ -5208,4 +5208,7 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get expenseAccountInvalid =>
       'The designated expense account is unavailable or a conversion rate is missing. Check account settings and rates.';
+
+  @override
+  String get assetSnapshotManualValue => 'Value in CNY';
 }

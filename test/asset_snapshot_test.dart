@@ -125,13 +125,16 @@ void main() {
     expect(controller.assetSnapshotFor(month)!.totalInBase, 1000);
   });
 
-  test('快照冻结原币余额、汇率与类别，重启和备份恢复不漂移', () async {
+  test('快照冻结原币余额、手填人民币估值与类别，重启和备份恢复不漂移', () async {
     final store = LocalKeyValueStore();
     final controller = await makeController(store);
     final account = _account('usd', currency: 'USD');
     await controller.addAccountDraft(account);
     final month = DateTime(2026, 1);
-    final snapshot = controller.buildAssetSnapshot(month, rates: {'USD': 7.1});
+    final snapshot = controller.buildAssetSnapshot(
+      month,
+      baseBalances: {'usd': 7100},
+    );
     expect(snapshot.totalInBase, 7100);
     expect(await controller.saveAssetSnapshot(snapshot), isTrue);
     await controller.saveAccountDraft(
@@ -167,7 +170,7 @@ void main() {
     expect(controller.entries, isEmpty);
   });
 
-  test('缺汇率不显示不完整总额，零余额不需要汇率', () async {
+  test('未填人民币估值不显示不完整总额，零余额可为零', () async {
     final controller = await makeController();
     await controller.addAccountDraft(_account('usd', currency: 'USD'));
     final missing = controller.buildAssetSnapshot(DateTime(2026, 1));

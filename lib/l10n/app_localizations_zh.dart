@@ -5003,7 +5003,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get assetSnapshotSave => '保存月度快照';
 
   @override
-  String get assetSnapshotHelp => '填写各账户原币余额，基金填写市值。保存后冻结当时余额与汇率，不改写日常流水。';
+  String get assetSnapshotHelp =>
+      '填写各账户余额，基金填写市值。外币账户直接填写对应人民币金额，无需汇率。保存快照不改写日常流水。';
 
   @override
   String get assetSnapshotOverwrite => '该月已有快照，保存将替换该月记录，其他月份不受影响。';
@@ -5033,7 +5034,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get assetSnapshotTotal => '净资产合计';
 
   @override
-  String get assetSnapshotRates => '汇总使用快照保存时的本位币估值；缺汇率时不展示不完整合计。';
+  String get assetSnapshotRates => '汇总直接使用手动填写的人民币估值；未填写时不展示不完整合计。';
 
   @override
   String get homeCategoryBudgetEmpty => '先设置分类默认预算，每月自动沿用';
@@ -5046,4 +5047,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get expenseAccountInvalid => '指定支出账户不可用或缺少换算汇率，请检查账户设置与汇率。';
+
+  @override
+  String get assetSnapshotManualValue => '对应人民币金额';
 }

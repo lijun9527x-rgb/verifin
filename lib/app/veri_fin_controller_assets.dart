@@ -13,13 +13,13 @@ extension AssetSnapshotOperations on VeriFinController {
   AssetMonthSnapshot buildAssetSnapshot(
     DateTime month, {
     Map<String, double> balances = const {},
-    Map<String, double> rates = const {},
+    Map<String, double> baseBalances = const {},
     AssetMonthSnapshot? template,
   }) {
     final now = DateTime.now();
     final nextMonth = DateTime(month.year, month.month + 1);
     final cutoff = nextMonth.isBefore(now) ? nextMonth : now;
-    final seed = template?.holdings ?? _assetSnapshotSeed(month, cutoff, now);
+    final seed = template?.holdings ?? _assetSnapshotSeed(cutoff);
     return AssetMonthSnapshot(
       bookId: activeBook.id,
       month: month,
@@ -30,9 +30,9 @@ extension AssetSnapshotOperations on VeriFinController {
           balances[holding.accountId] ?? holding.balance,
           holding.currencyCode,
         );
-        final rate = holding.currencyCode == activeBook.baseCurrencyCode
-            ? 1.0
-            : rates[holding.currencyCode] ?? holding.rateToBase;
+        final isBase = holding.currencyCode == activeBook.baseCurrencyCode;
+        final enteredBase =
+            baseBalances[holding.accountId] ?? holding.baseBalance;
         return AssetHoldingSnapshot(
           accountId: holding.accountId,
           name: holding.name,
@@ -41,25 +41,23 @@ extension AssetSnapshotOperations on VeriFinController {
           assetClass: holding.assetClass,
           currencyCode: holding.currencyCode,
           balance: balance,
-          rateToBase: rate,
-          baseBalance: balance == 0
-              ? 0
-              : rate == null
-              ? null
-              : normalizeCurrencyAmount(
-                  balance * rate,
+          rateToBase: isBase ? 1 : null,
+          baseBalance: isBase
+              ? balance
+              : enteredBase != null
+              ? normalizeCurrencyAmount(
+                  enteredBase,
                   activeBook.baseCurrencyCode,
-                ),
+                )
+              : balance == 0
+              ? 0
+              : null,
         );
       }).toList(),
     );
   }
 
-  List<AssetHoldingSnapshot> _assetSnapshotSeed(
-    DateTime month,
-    DateTime cutoff,
-    DateTime now,
-  ) {
+  List<AssetHoldingSnapshot> _assetSnapshotSeed(DateTime cutoff) {
     final selected = {
       for (final account in accounts)
         if (account.includeInAssets && !account.hidden) account.id: account,
@@ -80,7 +78,6 @@ extension AssetSnapshotOperations on VeriFinController {
       }
     }
     final bankNames = {for (final bank in accountGroups) bank.id: bank.name};
-    final monthEnd = DateTime(month.year, month.month + 1, 0);
     return [
       for (final account in selected.values)
         AssetHoldingSnapshot(
@@ -96,13 +93,9 @@ extension AssetSnapshotOperations on VeriFinController {
             balances[account.id]!,
             account.currencyCode,
           ),
-          rateToBase: rateToBaseAt(
-            bookId: activeBook.id,
-            baseCurrencyCode: activeBook.baseCurrencyCode,
-            currencyCode: account.currencyCode,
-            date: monthEnd.isBefore(now) ? monthEnd : now,
-            rates: exchangeRates,
-          ),
+          rateToBase: account.currencyCode == activeBook.baseCurrencyCode
+              ? 1
+              : null,
           baseBalance: null,
         ),
     ];
