@@ -584,6 +584,8 @@ void main() {
         version: 7,
         onCreate: (db, _) async {
           await db.execute(_legacyAccountsTable);
+          // 真实 v7 已包含周期规则表，后续迁移需要在该表上添加列。
+          await AppDatabase.migrations[7]!(db);
         },
       ),
     );
@@ -607,6 +609,7 @@ void main() {
     final migrated = await SqliteLedgerRepository(db).loadAccounts();
     expect(migrated.single.statementDay, isNull);
     expect(migrated.single.dueDay, isNull);
+    expect(await SqliteLedgerRepository(db).loadRecurringRules(), isEmpty);
     await db.close();
     await dir.delete(recursive: true);
   });

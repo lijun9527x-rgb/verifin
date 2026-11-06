@@ -110,13 +110,14 @@ class AppDatabase {
     )
   ''';
 
-  /// v20 → v21：外币资产可手填本位币金额，资产汇总不再强制要求维护汇率。
+  /// v21 → v22：持久化已记/跳过的周期日期，删除交易后也不重复生成。
   static Future<void> _migrateToV22(Database db) async {
     await db.execute(
       "ALTER TABLE recurring_rules ADD COLUMN handled_dates TEXT NOT NULL DEFAULT '[]'",
     );
   }
 
+  /// v20 → v21：外币资产可手填本位币金额，资产汇总不再强制要求维护汇率。
   static Future<void> _migrateToV21(Database db) async {
     await db.execute('ALTER TABLE accounts ADD COLUMN base_valuation REAL');
   }
