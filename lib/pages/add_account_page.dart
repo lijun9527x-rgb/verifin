@@ -109,19 +109,6 @@ class _AddAccountPageState extends State<AddAccountPage> {
                     onChanged: (value) => setState(() => _assetClass = value),
                   ),
                   const SizedBox(height: 10),
-                  TextFormField(
-                    controller: _nameController,
-                    decoration: InputDecoration(
-                      labelText: l10n.accountNameLabel,
-                    ),
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return l10n.accountNameRequired;
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 10),
                   SelectField(
                     key: const Key('add_account_group'),
                     label: l10n.accountGroupLabel,
@@ -240,6 +227,15 @@ class _AddAccountPageState extends State<AddAccountPage> {
             ),
           ),
           if (_advancedOpen) ...<Widget>[
+            const SizedBox(height: 10),
+            TextFormField(
+              key: const Key('add_account_custom_name'),
+              controller: _nameController,
+              decoration: InputDecoration(
+                labelText: l10n.accountCustomNameLabel,
+                hintText: _defaultName(),
+              ),
+            ),
             const SizedBox(height: 10),
             AnchoredMenuChoice<AccountType>(
               key: const Key('add_account_type_choice'),
@@ -442,7 +438,7 @@ class _AddAccountPageState extends State<AddAccountPage> {
   }
 
   bool get _isDirty {
-    final balanceChanged = _balance != null && _balance != 0;
+    final balanceChanged = _balance != null;
     return !_saved &&
         (_nameController.text.trim().isNotEmpty ||
             balanceChanged ||
@@ -534,6 +530,21 @@ class _AddAccountPageState extends State<AddAccountPage> {
     }
   }
 
+  String _defaultName() {
+    final controller = VeriFinScope.of(context);
+    final group = controller.accountGroups
+        .where((group) => group.id == _groupId)
+        .firstOrNull;
+    return defaultAssetName(
+      l10n: AppLocalizations.of(context),
+      assetClass: _assetClass,
+      currencyCode: _currencyCode ?? controller.activeBook.baseCurrencyCode,
+      baseCurrencyCode: controller.activeBook.baseCurrencyCode,
+      containerName: group?.name,
+      existingNames: controller.accounts.map((account) => account.name),
+    );
+  }
+
   Future<bool> _save() async {
     if (!_formKey.currentState!.validate()) {
       return false;
@@ -543,7 +554,9 @@ class _AddAccountPageState extends State<AddAccountPage> {
       Account(
         id: DateTime.now().microsecondsSinceEpoch.toString(),
         bookId: controller.activeBook.id,
-        name: _nameController.text.trim(),
+        name: _nameController.text.trim().isEmpty
+            ? _defaultName()
+            : _nameController.text.trim(),
         assetClass: _assetClass,
         type: _type,
         groupId: _groupId,

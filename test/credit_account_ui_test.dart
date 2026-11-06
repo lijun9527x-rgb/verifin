@@ -339,7 +339,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('add_account_credit_limit')), findsOneWidget);
 
-    await tester.enterText(find.byType(TextFormField).first, '招行信用卡');
+    await setNewAssetName(tester, '招行信用卡');
     await tester.pump();
 
     await tester.tap(find.byKey(const Key('add_account_credit_limit')));

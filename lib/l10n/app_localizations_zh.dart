@@ -1054,9 +1054,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get accountNameLabel => '资产名称';
 
   @override
-  String get accountNameRequired => '资产名称必填';
-
-  @override
   String get cardLast4Label => '卡号后四位';
 
   @override
@@ -5060,7 +5057,7 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get accountAdvancedSection => '卡片与信用（选填）';
+  String get accountAdvancedSection => '更多设置（选填）';
 
   @override
   String get commonHelp => '帮助';
@@ -5072,4 +5069,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get assetHistoryMissing => '未保存的月份留空';
+
+  @override
+  String get accountCustomNameLabel => '自定义名称（选填）';
 }

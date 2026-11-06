@@ -9,6 +9,7 @@ class AccountSectionCard extends StatelessWidget {
     required this.accounts,
     required this.balances,
     this.totalText,
+    this.nameOf,
     this.collapsed = false,
     this.sectionDragIndex,
     this.sectionDragImmediate = false,
@@ -24,6 +25,7 @@ class AccountSectionCard extends StatelessWidget {
   final List<Account> accounts;
   final Map<Account, double> balances;
   final String? totalText;
+  final String Function(Account account)? nameOf;
   final bool collapsed;
   final int? sectionDragIndex;
   final bool sectionDragImmediate;
@@ -191,6 +193,7 @@ class AccountSectionCard extends StatelessWidget {
                             final row = _AccountRow(
                               key: ValueKey<String>('account_${account.id}'),
                               account: account,
+                              displayName: nameOf?.call(account),
                               balance: balances[account] ?? 0,
                               onTap: onAccountTap == null
                                   ? null
@@ -287,11 +290,13 @@ class _AccountRow extends StatelessWidget {
   const _AccountRow({
     super.key,
     required this.account,
+    this.displayName,
     required this.balance,
     required this.onTap,
   });
 
   final Account account;
+  final String? displayName;
   final double balance;
   final VoidCallback? onTap;
 
@@ -315,7 +320,7 @@ class _AccountRow extends StatelessWidget {
                   children: <Widget>[
                     Text.rich(
                       TextSpan(
-                        text: account.name,
+                        text: displayName ?? account.name,
                         children: <TextSpan>[
                           if (account.cardLast4.isNotEmpty &&
                               account.type.supportsCardLast4)

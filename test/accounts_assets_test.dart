@@ -121,7 +121,7 @@ void main() {
     await tapBottomTab(tester, 1);
     await tester.tap(find.byTooltip('添加资产'));
     await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextFormField).first, '中信银行储蓄卡');
+    await setNewAssetName(tester, '中信银行储蓄卡');
     await tester.pumpAndSettle();
 
     expect(find.text('中信银行'), findsOneWidget);
@@ -170,7 +170,7 @@ void main() {
     await tapBottomTab(tester, 1);
     await tester.tap(find.byTooltip('添加资产'));
     await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextFormField).first, '临时账户');
+    await setNewAssetName(tester, '临时账户');
     await tester.pump();
 
     await tester.tap(find.byTooltip('返回'));
@@ -226,7 +226,7 @@ void main() {
     await tester.tap(find.byTooltip('添加资产'));
     await tester.pumpAndSettle();
 
-    await tester.enterText(find.byType(TextFormField).first, '招行信用卡');
+    await setNewAssetName(tester, '招行信用卡');
     await tester.pump();
 
     // 初始余额不再是系统键盘输入框，点按后弹出统一数字键盘。
@@ -1226,7 +1226,7 @@ void main() {
 
     await tester.tap(find.widgetWithText(FilledButton, '添加资产'));
     await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextFormField).first, '招行一年定期');
+    await setNewAssetName(tester, '招行一年定期');
     await tester.pump();
     await tester.tap(find.byTooltip('保存'));
     await tester.pumpAndSettle();

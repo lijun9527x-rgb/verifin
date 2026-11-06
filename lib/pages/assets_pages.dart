@@ -478,6 +478,10 @@ class _AssetsPageState extends State<AssetsPage> {
                   title: section.title,
                   accounts: section.accounts,
                   balances: balances,
+                  nameOf: viewMode == AssetAccountViewMode.group
+                      ? (account) =>
+                            assetNameInContainer(account, section.title)
+                      : null,
                   totalText: _assetSectionTotalText(
                     accounts: section.accounts,
                     valuation: valuation,

@@ -1081,9 +1081,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get accountNameLabel => 'Asset name';
 
   @override
-  String get accountNameRequired => 'Asset name is required';
-
-  @override
   String get cardLast4Label => 'Last 4 digits';
 
   @override
@@ -5220,7 +5217,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get accountAdvancedSection => 'Card & credit (optional)';
+  String get accountAdvancedSection => 'More settings (optional)';
 
   @override
   String get commonHelp => 'Help';
@@ -5233,4 +5230,7 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get assetHistoryMissing =>
       'Months without saved records are left blank';
+
+  @override
+  String get accountCustomNameLabel => 'Custom name (optional)';
 }

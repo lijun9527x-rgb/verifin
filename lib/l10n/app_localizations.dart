@@ -2048,12 +2048,6 @@ abstract class AppLocalizations {
   /// **'资产名称'**
   String get accountNameLabel;
 
-  /// No description provided for @accountNameRequired.
-  ///
-  /// In zh, this message translates to:
-  /// **'资产名称必填'**
-  String get accountNameRequired;
-
   /// No description provided for @cardLast4Label.
   ///
   /// In zh, this message translates to:
@@ -9091,7 +9085,7 @@ abstract class AppLocalizations {
   /// No description provided for @accountAdvancedSection.
   ///
   /// In zh, this message translates to:
-  /// **'卡片与信用（选填）'**
+  /// **'更多设置（选填）'**
   String get accountAdvancedSection;
 
   /// No description provided for @commonHelp.
@@ -9111,6 +9105,12 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'未保存的月份留空'**
   String get assetHistoryMissing;
+
+  /// No description provided for @accountCustomNameLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'自定义名称（选填）'**
+  String get accountCustomNameLabel;
 }
 
 class _AppLocalizationsDelegate

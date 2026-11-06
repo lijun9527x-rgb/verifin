@@ -214,12 +214,31 @@ Finder firstVerticalScrollable() => find
     )
     .first;
 
+/// 名称已成为可选高级字段；测试需要自定义名称时走同一真实入口。
+Future<void> setNewAssetName(WidgetTester tester, String name) async {
+  final field = find.byKey(const Key('add_account_custom_name'));
+  final scroll = tester.state<ScrollableState>(firstVerticalScrollable());
+  final originalOffset = scroll.position.pixels;
+  if (field.evaluate().isEmpty) {
+    final toggle = find.byKey(const Key('add_account_advanced_toggle'));
+    await tester.ensureVisible(toggle);
+    await tester.pumpAndSettle();
+    await tester.tap(toggle);
+    await tester.pumpAndSettle();
+  }
+  await tester.ensureVisible(field);
+  await tester.pumpAndSettle();
+  await tester.enterText(field, name);
+  scroll.position.jumpTo(originalOffset);
+  await tester.pumpAndSettle();
+}
+
 Future<void> addTestAccount(WidgetTester tester, String name) async {
   await tapBottomTab(tester, 1);
   // 资产页头部直接提供「添加资产」，不再从操作菜单进入。
   await tester.tap(find.byTooltip('添加资产'));
   await tester.pumpAndSettle();
-  await tester.enterText(find.byType(TextFormField).first, name);
+  await setNewAssetName(tester, name);
   await tester.pump();
   await tester.tap(find.byTooltip('保存'));
   await tester.pumpAndSettle();

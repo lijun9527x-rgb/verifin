@@ -78,7 +78,7 @@ void main() {
     await tester.tap(find.textContaining('USD').last);
     await tester.pumpAndSettle();
 
-    await tester.enterText(find.byType(TextFormField).first, '美元活期');
+    await setNewAssetName(tester, '美元活期');
     await tester.pump();
     await tester.tap(find.byKey(const Key('add_account_balance')));
     await tester.pumpAndSettle();

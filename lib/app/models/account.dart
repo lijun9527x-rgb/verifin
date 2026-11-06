@@ -268,6 +268,40 @@ class Account {
 /// 它不是真实的 [AccountGroup]，只表示「没有容器」，不写进分组表。
 const String ungroupedAccountGroupId = 'ungrouped';
 
+/// 新建资产默认用容器、类别和外币代码命名；同名资产加序号，不影响已有名称。
+String defaultAssetName({
+  required AppLocalizations l10n,
+  required AssetClass assetClass,
+  required String currencyCode,
+  required String baseCurrencyCode,
+  String? containerName,
+  Iterable<String> existingNames = const [],
+}) {
+  final parts = <String>[
+    if (containerName != null && containerName.trim().isNotEmpty)
+      containerName.trim(),
+    assetClass.label(l10n),
+    if (currencyCode != baseCurrencyCode) currencyCode,
+  ];
+  final base = parts.join('·');
+  final existing = existingNames.toSet();
+  var candidate = base;
+  var suffix = 2;
+  while (existing.contains(candidate)) {
+    candidate = '$base ($suffix)';
+    suffix++;
+  }
+  return candidate;
+}
+
+/// 容器内省略重复的容器前缀，存储名称及其他页面显示保持完整。
+String assetNameInContainer(Account account, String containerName) {
+  final prefix = '$containerName·';
+  return account.name.startsWith(prefix) && account.name.length > prefix.length
+      ? account.name.substring(prefix.length)
+      : account.name;
+}
+
 /// 手填本位币估值的字段标签：人民币账本说「对应人民币金额」，其他本位币按币种取名。
 String baseCurrencyValuationLabel(
   AppLocalizations l10n,

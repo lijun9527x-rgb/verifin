@@ -107,6 +107,8 @@ Veri Fin 已有的**可复用 widget / 弹窗 helper / 对话框 / 纯函数**�
 
 ## 族 5 — 金额输入 / 计算
 
+资产命名纯函数位于 `app/models/account.dart`：`defaultAssetName` 根据容器、资产类别和币种生成唯一默认名称；`assetNameInContainer` 仅在容器内省略重复前缀，不改写存储。`AccountSectionCard.nameOf` 可指定列表中的展示名称，未提供时沿用完整名称。
+
 | 名称 | 类型 | 位置 | 用途 / 关键点 |
 |---|---|---|---|
 | `showNumberPadSheet` | Sheet 函数 | `sheets.dart` | **数字键盘弹窗**（四则算式 + 结果预览）；输入区默认空并显示「请输入金额」占位，初始值为 0 时不预填 `0`；`allowNegative` 时可在首位按 `-` 输入负数（`-` 后按小数点补成 `-0.`），`allowZero` 决定清空后能否确认为 0；数字区支持设置中的标准（7 8 9 / 4 5 6 / 1 2 3）与电话（1 2 3 / 4 5 6 / 7 8 9）布局，默认标准；货币金额传 `currencyCode` 自动遵循 ISO minor unit，汇率输入才显式用 `maxFractionDigits:10`；`maxAmount` 的展示/比较也随币种精度，JPY 自动禁用小数点。触感偏好内部自取。**输金额一律用它**（含新建账户初始余额、新手引导的余额与预算），不要弹系统 TextField、不要裸包 `showModalBottomSheet` |

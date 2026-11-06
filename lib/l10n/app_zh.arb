@@ -804,7 +804,6 @@
   "accountIconLabel": "资产图标",
   "accountTypeLabel": "账户类型",
   "accountNameLabel": "资产名称",
-  "accountNameRequired": "资产名称必填",
   "cardLast4Label": "卡号后四位",
   "cardLast4Invalid": "请输入 1-4 位数字",
   "cardLabel": "卡号",
@@ -3358,7 +3357,7 @@
       }
     }
   },
-  "accountAdvancedSection": "卡片与信用（选填）",
+  "accountAdvancedSection": "更多设置（选填）",
   "commonHelp": "帮助",
   "groupRowActions": "{name}操作",
   "@groupRowActions": {
@@ -3368,5 +3367,6 @@
       }
     }
   },
-  "assetHistoryMissing": "未保存的月份留空"
+  "assetHistoryMissing": "未保存的月份留空",
+  "accountCustomNameLabel": "自定义名称（选填）"
 }

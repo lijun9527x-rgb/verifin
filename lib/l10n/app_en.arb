@@ -385,7 +385,6 @@
   "accountIconLabel": "Asset icon",
   "accountTypeLabel": "Account type",
   "accountNameLabel": "Asset name",
-  "accountNameRequired": "Asset name is required",
   "cardLast4Label": "Last 4 digits",
   "cardLast4Invalid": "Enter 1-4 digits",
   "cardLabel": "Card number",
@@ -2051,7 +2050,7 @@
   "assetSnapshotAddHoldingTitle": "Choose assets to add",
   "assetSnapshotAddHoldingEmpty": "Every current asset is already in this month",
   "accountMarketValueLabel": "Market value ({code})",
-  "accountAdvancedSection": "Card & credit (optional)",
+  "accountAdvancedSection": "More settings (optional)",
   "commonHelp": "Help",
   "groupRowActions": "{name} actions",
   "@groupRowActions": {
@@ -2061,5 +2060,6 @@
       }
     }
   },
-  "assetHistoryMissing": "Months without saved records are left blank"
+  "assetHistoryMissing": "Months without saved records are left blank",
+  "accountCustomNameLabel": "Custom name (optional)"
 }

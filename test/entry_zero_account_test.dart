@@ -45,7 +45,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // 就地建一个账户并返回。
-    await tester.enterText(find.byType(TextFormField).first, '现金');
+    await setNewAssetName(tester, '现金');
     await tester.pump();
     await tester.tap(find.byTooltip('保存'));
     await tester.pumpAndSettle();

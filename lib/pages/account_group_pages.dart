@@ -132,6 +132,9 @@ class AccountGroupDetailPage extends StatelessWidget {
                   title: l10n.accountsCount(accounts.length),
                   accounts: accounts,
                   balances: balances,
+                  nameOf: group == null
+                      ? null
+                      : (account) => assetNameInContainer(account, group.name),
                   totalText: _assetSectionTotalText(
                     accounts: accounts,
                     valuation: controller.accountBalancesInBase(

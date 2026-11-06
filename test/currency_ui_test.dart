@@ -108,7 +108,7 @@ void main() {
     final controller = await makeController();
     await pumpPage(tester, controller, const AddAccountPage());
 
-    await tester.enterText(find.byType(TextFormField).first, '日元现金');
+    await setNewAssetName(tester, '日元现金');
     await tester.tap(find.byKey(const Key('account_currency_select_field')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('currency_option_JPY')));
