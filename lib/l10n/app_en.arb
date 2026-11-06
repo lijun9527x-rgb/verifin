@@ -2061,5 +2061,15 @@
     }
   },
   "assetHistoryMissing": "Months without saved records are left blank",
-  "accountCustomNameLabel": "Custom name (optional)"
+  "accountCustomNameLabel": "Custom name (optional)",
+  "recurringTradingDay": "Every A-share trading day",
+  "tradingCalendarSync": "Sync trading calendar",
+  "tradingCalendarCached": "Cached trading years: {years}",
+  "@tradingCalendarCached": {"placeholders": {"years": {"type": "String"}}},
+  "tradingCalendarUnavailable": "Trading calendar unavailable; posting paused",
+  "recurringSkipNext": "Skip next occurrence",
+  "recurringSkipConfirm": "Skip the occurrence on {date}?",
+  "@recurringSkipConfirm": {"placeholders": {"date": {"type": "String"}}},
+  "recurringSkipDone": "Skipped; it will not be posted again",
+  "recurringTradingHint": "Posted when the app opens; new rules start tomorrow by default"
 }

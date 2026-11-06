@@ -9111,6 +9111,54 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'自定义名称（选填）'**
   String get accountCustomNameLabel;
+
+  /// No description provided for @recurringTradingDay.
+  ///
+  /// In zh, this message translates to:
+  /// **'每个A股交易日'**
+  String get recurringTradingDay;
+
+  /// No description provided for @tradingCalendarSync.
+  ///
+  /// In zh, this message translates to:
+  /// **'同步交易日历'**
+  String get tradingCalendarSync;
+
+  /// No description provided for @tradingCalendarCached.
+  ///
+  /// In zh, this message translates to:
+  /// **'已缓存交易日历：{years}'**
+  String tradingCalendarCached(String years);
+
+  /// No description provided for @tradingCalendarUnavailable.
+  ///
+  /// In zh, this message translates to:
+  /// **'交易日历未就绪，暂不补记'**
+  String get tradingCalendarUnavailable;
+
+  /// No description provided for @recurringSkipNext.
+  ///
+  /// In zh, this message translates to:
+  /// **'跳过下一次'**
+  String get recurringSkipNext;
+
+  /// No description provided for @recurringSkipConfirm.
+  ///
+  /// In zh, this message translates to:
+  /// **'跳过 {date} 的这一次记账？'**
+  String recurringSkipConfirm(String date);
+
+  /// No description provided for @recurringSkipDone.
+  ///
+  /// In zh, this message translates to:
+  /// **'已跳过，不会再次补记'**
+  String get recurringSkipDone;
+
+  /// No description provided for @recurringTradingHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'打开应用时补记；新规则默认从明天开始'**
+  String get recurringTradingHint;
 }
 
 class _AppLocalizationsDelegate

@@ -11,6 +11,7 @@ import '../../local_storage/local_storage.dart';
 import '../attachments/attachment_store.dart';
 import '../logging/app_logger.dart';
 import '../models.dart';
+import '../trading_calendar.dart';
 import '../veri_fin_controller.dart';
 import 'startup_coordinator.dart';
 import 'startup_error_sink.dart';
@@ -127,9 +128,16 @@ class AppStartup {
             throw StateError('启动顺序错误：偏好或数据库尚未就绪');
           }
           final supportDirectory = await getApplicationSupportDirectory();
+          final tradingCalendar = TradingCalendarService.production(
+            File(p.join(supportDirectory.path, 'trading_calendar.json')),
+            onFailure: (message) =>
+                session.logger?.warning(message, source: 'trading-calendar'),
+          );
+          await tradingCalendar.load();
           final controller = await VeriFinController.create(
             store,
             repository: SqliteLedgerRepository(database),
+            tradingCalendar: tradingCalendar,
             attachmentStore: FileAttachmentStore(
               root: Directory(p.join(supportDirectory.path, 'attachments')),
             ),

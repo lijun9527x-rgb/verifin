@@ -1052,6 +1052,7 @@ class SqliteLedgerRepository implements LedgerRepository {
         'to_account_id': r.toAccountId,
         'note': r.note,
         'frequency': r.frequency.storageValue,
+        'handled_dates': jsonEncode(r.handledDates.toList()..sort()),
         'start_date': r.startDate.millisecondsSinceEpoch,
         'next_run_date': r.nextRunDate.millisecondsSinceEpoch,
         'active': r.active ? 1 : 0,
@@ -1075,6 +1076,9 @@ class SqliteLedgerRepository implements LedgerRepository {
     toAccountId: row['to_account_id'] as String?,
     note: row['note'] as String? ?? '',
     frequency: RecurringFrequency.fromStorage(row['frequency'] as String?),
+    handledDates: Set<String>.from(
+      jsonDecode(row['handled_dates'] as String? ?? '[]') as List,
+    ),
     startDate: DateTime.fromMillisecondsSinceEpoch(row['start_date'] as int),
     nextRunDate: DateTime.fromMillisecondsSinceEpoch(
       row['next_run_date'] as int,

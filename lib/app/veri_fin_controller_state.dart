@@ -7,6 +7,8 @@ mixin _ControllerState on ChangeNotifier {
   LocalKeyValueStore get _store;
   LedgerRepository get _repository;
   AttachmentStore get _attachmentStore;
+  TradingCalendarService get _tradingCalendar;
+  Future<void> _recurringGenerationTail = Future<void>.value();
   AppLogger? get _logger;
   bool get _systemIsEnglish;
   String Function(String prefix)? get _injectedIdFactory;

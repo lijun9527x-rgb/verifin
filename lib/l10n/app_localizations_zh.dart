@@ -5072,4 +5072,32 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get accountCustomNameLabel => '自定义名称（选填）';
+
+  @override
+  String get recurringTradingDay => '每个A股交易日';
+
+  @override
+  String get tradingCalendarSync => '同步交易日历';
+
+  @override
+  String tradingCalendarCached(String years) {
+    return '已缓存交易日历：$years';
+  }
+
+  @override
+  String get tradingCalendarUnavailable => '交易日历未就绪，暂不补记';
+
+  @override
+  String get recurringSkipNext => '跳过下一次';
+
+  @override
+  String recurringSkipConfirm(String date) {
+    return '跳过 $date 的这一次记账？';
+  }
+
+  @override
+  String get recurringSkipDone => '已跳过，不会再次补记';
+
+  @override
+  String get recurringTradingHint => '打开应用时补记；新规则默认从明天开始';
 }

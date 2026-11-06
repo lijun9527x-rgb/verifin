@@ -305,6 +305,7 @@ List<String> _stringList(Object? value) {
 /// 周期记账频率。
 enum RecurringFrequency {
   daily('daily'),
+  aShareTradingDay('aShareTradingDay'),
   weekly('weekly'),
   monthly('monthly'),
   yearly('yearly');
@@ -317,6 +318,8 @@ enum RecurringFrequency {
     switch (this) {
       case RecurringFrequency.daily:
         return l10n.recurringDaily;
+      case RecurringFrequency.aShareTradingDay:
+        return l10n.recurringTradingDay;
       case RecurringFrequency.weekly:
         return l10n.recurringWeekly;
       case RecurringFrequency.monthly:
@@ -355,6 +358,7 @@ class RecurringRule {
     required this.startDate,
     required this.nextRunDate,
     this.active = true,
+    this.handledDates = const {},
   }) : accountAmount = accountAmount ?? (accountId == '' ? null : amount),
        toAccountAmount =
            toAccountAmount ??
@@ -375,6 +379,9 @@ class RecurringRule {
   final String? toAccountId;
   final String note;
   final RecurringFrequency frequency;
+
+  /// 已生成或主动跳过的交易日期，删除交易或编辑规则后也不重复补记。
+  final Set<String> handledDates;
   final DateTime startDate;
   final DateTime nextRunDate;
   final bool active;
@@ -398,6 +405,7 @@ class RecurringRule {
     DateTime? startDate,
     DateTime? nextRunDate,
     bool? active,
+    Set<String>? handledDates,
   }) {
     return RecurringRule(
       id: id,
@@ -421,6 +429,7 @@ class RecurringRule {
       startDate: startDate ?? this.startDate,
       nextRunDate: nextRunDate ?? this.nextRunDate,
       active: active ?? this.active,
+      handledDates: handledDates ?? this.handledDates,
     );
   }
 
@@ -440,6 +449,8 @@ class RecurringRule {
       'toAccountId': toAccountId,
       'note': note,
       'frequency': frequency.storageValue,
+      if (handledDates.isNotEmpty)
+        'handledDates': handledDates.toList()..sort(),
       'startDate': startDate.toIso8601String(),
       'nextRunDate': nextRunDate.toIso8601String(),
       'active': active,
@@ -471,6 +482,7 @@ class RecurringRule {
       toAccountId: json['toAccountId'] as String?,
       note: json['note'] as String? ?? '',
       frequency: RecurringFrequency.fromStorage(json['frequency'] as String?),
+      handledDates: Set<String>.from(json['handledDates'] as List? ?? const []),
       startDate: DateTime.tryParse(json['startDate'] as String? ?? '') ?? now,
       nextRunDate:
           DateTime.tryParse(json['nextRunDate'] as String? ?? '') ?? now,

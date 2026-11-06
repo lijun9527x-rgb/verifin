@@ -2,6 +2,7 @@
 
 import 'ledger_math.dart';
 import 'models.dart';
+import 'trading_calendar.dart';
 
 /// 把日期按频率推进一个周期。月/年推进时若目标月没有目标日（如锚定 31 号遇 2 月），
 /// 收敛到目标月最后一天。
@@ -16,6 +17,7 @@ DateTime advanceRecurring(
 }) {
   switch (frequency) {
     case RecurringFrequency.daily:
+    case RecurringFrequency.aShareTradingDay:
       return DateTime(date.year, date.month, date.day + 1);
     case RecurringFrequency.weekly:
       return DateTime(date.year, date.month, date.day + 7);
@@ -41,17 +43,28 @@ List<DateTime> dueDatesFor(
   RecurringRule rule,
   DateTime now, {
   int maxCount = 400,
+  bool? Function(DateTime)? isTradingDay,
 }) {
   if (!rule.active) {
     return const <DateTime>[];
   }
-  final today = dateOnly(now);
+  final trading = rule.frequency == RecurringFrequency.aShareTradingDay;
+  final today = trading ? shanghaiDate(now) : dateOnly(now);
   final anchorDay = rule.startDate.day;
   final result = <DateTime>[];
   var due = dateOnly(rule.nextRunDate);
+  if (trading && due.isBefore(dateOnly(rule.startDate))) {
+    due = dateOnly(rule.startDate);
+  }
   var guard = 0;
   while (!due.isAfter(today) && guard < maxCount) {
-    result.add(due);
+    if (trading) {
+      final open = isTradingDay?.call(due);
+      if (open == null) break;
+      if (open) result.add(due);
+    } else {
+      result.add(due);
+    }
     due = advanceRecurring(due, rule.frequency, anchorDay: anchorDay);
     guard += 1;
   }

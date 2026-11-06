@@ -83,6 +83,8 @@ third_party/                  # 本地 vendor 源码（jdenticon_dart、liquid_g
 
 ## Coding Style
 
+交易日定投的日历、回执和数据保护契约见 `docs/dev/trading-day-recurring.md`。公开交易日历是可重建的文件缓存；已处理日期是核心账目，随周期规则存 SQLite 并进备份。升级不得重建账户、改写期初余额或重算历史快照。
+
 ### Dart 与依赖
 
 - 遵循 Dart 默认格式和 `analysis_options.yaml` 的 `flutter_lints` 及额外正确性 lint；使用两个空格缩进。

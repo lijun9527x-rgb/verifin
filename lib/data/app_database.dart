@@ -18,7 +18,7 @@ class AppDatabase {
   final Database db;
 
   static const String defaultDatabaseName = 'verifin.db';
-  static const int schemaVersion = 21;
+  static const int schemaVersion = 22;
 
   /// 打开（或创建）数据库。测试通过 [factory]/[path] 注入 ffi 与内存路径；
   /// 真实平台留空则由 [resolveDatabaseFactory]/[resolveDatabasePath] 决定。
@@ -78,6 +78,7 @@ class AppDatabase {
         19: _migrateToV19,
         20: _migrateToV20,
         21: _migrateToV21,
+        22: _migrateToV22,
       };
 
   /// 只读暴露迁移注册表，供迁移矩阵测试把库推进到任意中间版本。生产代码勿用。
@@ -110,6 +111,12 @@ class AppDatabase {
   ''';
 
   /// v20 → v21：外币资产可手填本位币金额，资产汇总不再强制要求维护汇率。
+  static Future<void> _migrateToV22(Database db) async {
+    await db.execute(
+      "ALTER TABLE recurring_rules ADD COLUMN handled_dates TEXT NOT NULL DEFAULT '[]'",
+    );
+  }
+
   static Future<void> _migrateToV21(Database db) async {
     await db.execute('ALTER TABLE accounts ADD COLUMN base_valuation REAL');
   }
@@ -881,6 +888,7 @@ class AppDatabase {
       to_account_amount REAL,
       base_amount REAL NOT NULL DEFAULT 0,
       rate_policy TEXT NOT NULL DEFAULT 'fixedAmounts',
+      handled_dates TEXT NOT NULL DEFAULT '[]',
       category_id TEXT NOT NULL,
       account_id TEXT NOT NULL,
       to_account_id TEXT,

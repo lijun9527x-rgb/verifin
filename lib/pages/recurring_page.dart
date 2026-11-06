@@ -11,6 +11,7 @@ import '../app/entry_currency_draft.dart';
 import '../app/feedback.dart';
 import '../app/ledger_math.dart';
 import '../app/models.dart';
+import '../app/trading_calendar.dart';
 import '../app/veri_fin_controller.dart';
 import '../app/veri_fin_scope.dart';
 import '../l10n/app_localizations.dart';
@@ -29,6 +30,7 @@ class _RecurringRulesPageState extends State<RecurringRulesPage> {
   final Map<String, bool> _initialActive = <String, bool>{};
   final Map<String, bool> _draftActive = <String, bool>{};
   bool _initialized = false;
+  bool _syncingCalendar = false;
 
   @override
   void didChangeDependencies() {
@@ -63,6 +65,11 @@ class _RecurringRulesPageState extends State<RecurringRulesPage> {
                   showBack: true,
                   actions: <Widget>[
                     HeaderAction(
+                      icon: Icons.sync,
+                      tooltip: AppLocalizations.of(context).tradingCalendarSync,
+                      onPressed: _syncingCalendar ? null : _syncCalendar,
+                    ),
+                    HeaderAction(
                       icon: Icons.add,
                       tooltip: AppLocalizations.of(context).recurringAddTooltip,
                       onPressed: () => _openEditor(context, null),
@@ -71,6 +78,23 @@ class _RecurringRulesPageState extends State<RecurringRulesPage> {
                   ],
                 ),
                 const SizedBox(height: 10),
+                if (rules.any(
+                  (rule) =>
+                      rule.frequency == RecurringFrequency.aShareTradingDay,
+                ))
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: Text(
+                      controller.tradingCalendarYears.isEmpty
+                          ? AppLocalizations.of(
+                              context,
+                            ).tradingCalendarUnavailable
+                          : AppLocalizations.of(context).tradingCalendarCached(
+                              controller.tradingCalendarYears.join(', '),
+                            ),
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ),
                 if (missingByRule.isNotEmpty) ...<Widget>[
                   VeriCard(
                     child: Row(
@@ -130,6 +154,17 @@ class _RecurringRulesPageState extends State<RecurringRulesPage> {
                             missingCodes:
                                 missingByRule[rule.id] ?? const <String>{},
                             onTap: () => _openEditor(context, rule),
+                            nextTradingDate:
+                                rule.frequency ==
+                                    RecurringFrequency.aShareTradingDay
+                                ? controller.nextTradingDate(rule)
+                                : null,
+                            onSkip:
+                                rule.frequency ==
+                                        RecurringFrequency.aShareTradingDay &&
+                                    controller.nextTradingDate(rule) != null
+                                ? () => _skipNext(rule)
+                                : null,
                             onToggle: (value) {
                               setState(() => _draftActive[rule.id] = value);
                             },
@@ -211,6 +246,49 @@ class _RecurringRulesPageState extends State<RecurringRulesPage> {
       ),
     );
   }
+
+  Future<void> _syncCalendar() async {
+    final controller = VeriFinScope.of(context);
+    setState(() => _syncingCalendar = true);
+    try {
+      await controller.syncTradingCalendar(DateTime.now(), force: true);
+      if (!mounted) return;
+      if (!controller.tradingCalendarReady(shanghaiDate(DateTime.now()))) {
+        unawaited(
+          VeriFeedbackHost.of(context).showMessage(
+            message: AppLocalizations.of(context).tradingCalendarUnavailable,
+            tone: VeriFeedbackTone.error,
+          ),
+        );
+        return;
+      }
+      await _retryDue();
+    } finally {
+      if (mounted) setState(() => _syncingCalendar = false);
+    }
+  }
+
+  Future<void> _skipNext(RecurringRule rule) async {
+    final controller = VeriFinScope.of(context);
+    final date = controller.nextTradingDate(rule);
+    if (date == null) return;
+    final l10n = AppLocalizations.of(context);
+    final confirmed = await showConfirmDialog(
+      context,
+      title: l10n.recurringSkipNext,
+      message: l10n.recurringSkipConfirm(l10n.dateMonthDay(date)),
+      confirmLabel: l10n.recurringSkipNext,
+    );
+    if (confirmed != true || !mounted) return;
+    final saved = await controller.skipNextTradingOccurrence(rule.id, date);
+    if (!mounted) return;
+    unawaited(
+      VeriFeedbackHost.of(context).showMessage(
+        message: saved ? l10n.recurringSkipDone : l10n.recurringGenerateFailed,
+        tone: saved ? VeriFeedbackTone.success : VeriFeedbackTone.error,
+      ),
+    );
+  }
 }
 
 class _RecurringRow extends StatelessWidget {
@@ -220,6 +298,8 @@ class _RecurringRow extends StatelessWidget {
     required this.missingCodes,
     required this.onTap,
     required this.onToggle,
+    this.nextTradingDate,
+    this.onSkip,
   });
 
   final RecurringRule rule;
@@ -227,6 +307,8 @@ class _RecurringRow extends StatelessWidget {
   final Set<String> missingCodes;
   final VoidCallback onTap;
   final ValueChanged<bool> onToggle;
+  final DateTime? nextTradingDate;
+  final VoidCallback? onSkip;
 
   @override
   Widget build(BuildContext context) {
@@ -262,7 +344,7 @@ class _RecurringRow extends StatelessWidget {
                   const SizedBox(height: 3),
                   Text(
                     '${rule.frequency.label(AppLocalizations.of(context))} · $sign${formatUserMoney(rule.amount, rule.currencyCode)}'
-                    ' · ${AppLocalizations.of(context).nextRun(AppLocalizations.of(context).dateMonthDay(rule.nextRunDate))}',
+                    ' · ${rule.frequency == RecurringFrequency.aShareTradingDay && nextTradingDate == null ? AppLocalizations.of(context).tradingCalendarUnavailable : AppLocalizations.of(context).nextRun(AppLocalizations.of(context).dateMonthDay(nextTradingDate ?? rule.nextRunDate))}',
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
                       color: Theme.of(
                         context,
@@ -283,6 +365,12 @@ class _RecurringRow extends StatelessWidget {
                 ],
               ),
             ),
+            if (rule.frequency == RecurringFrequency.aShareTradingDay)
+              IconButton(
+                onPressed: onSkip,
+                icon: const Icon(Icons.skip_next_outlined),
+                tooltip: AppLocalizations.of(context).recurringSkipNext,
+              ),
             Switch(value: rule.active, onChanged: onToggle),
           ],
         ),
@@ -336,6 +424,7 @@ class _RecurringRuleEditPageState extends State<RecurringRuleEditPage> {
   String? _toAccountId;
   late RecurringFrequency _frequency;
   late DateTime _startDate;
+  bool _startDateTouched = false;
   late final TextEditingController _noteController;
   late _RecurringRuleDraftSnapshot _initialDraft;
   var _initialized = false;
@@ -652,13 +741,26 @@ class _RecurringRuleEditPageState extends State<RecurringRuleEditPage> {
                             value.label(AppLocalizations.of(context)),
                         iconOf: (value) => switch (value) {
                           RecurringFrequency.daily => Icons.today_outlined,
+                          RecurringFrequency.aShareTradingDay =>
+                            Icons.event_available_outlined,
                           RecurringFrequency.weekly => Icons.view_week_outlined,
                           RecurringFrequency.monthly =>
                             Icons.calendar_month_outlined,
                           RecurringFrequency.yearly => Icons.event_outlined,
                         },
-                        onSelected: (value) =>
-                            setState(() => _frequency = value),
+                        onSelected: (value) => setState(() {
+                          _frequency = value;
+                          if (value == RecurringFrequency.aShareTradingDay &&
+                              widget.rule == null &&
+                              !_startDateTouched) {
+                            final today = shanghaiDate(DateTime.now());
+                            _startDate = DateTime(
+                              today.year,
+                              today.month,
+                              today.day + 1,
+                            );
+                          }
+                        }),
                         semanticLabel: AppLocalizations.of(
                           context,
                         ).pickFrequencyTitle,
@@ -675,6 +777,11 @@ class _RecurringRuleEditPageState extends State<RecurringRuleEditPage> {
                         ).dateMonthDay(_startDate),
                         onTap: _pickStartDate,
                       ),
+                      if (_frequency == RecurringFrequency.aShareTradingDay)
+                        Text(
+                          AppLocalizations.of(context).recurringTradingHint,
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
                       DetailInfoRow(
                         label: AppLocalizations.of(context).commonNote,
                         value: _noteController.text.trim().isEmpty
@@ -1008,6 +1115,7 @@ class _RecurringRuleEditPageState extends State<RecurringRuleEditPage> {
     if (picked != null && mounted) {
       setState(() {
         _startDate = dateOnly(picked);
+        _startDateTouched = true;
         final controller = VeriFinScope.of(context);
         _resolveAmounts(controller, controller.accounts);
       });

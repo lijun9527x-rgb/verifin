@@ -33,6 +33,7 @@ import 'ledger_data_validation.dart';
 import 'logging/app_logger.dart';
 import 'models.dart';
 import 'recurring.dart';
+import 'trading_calendar.dart';
 import 'reminder/reminder_settings.dart';
 
 part 'veri_fin_controller_state.dart';
@@ -142,11 +143,14 @@ class VeriFinController extends ChangeNotifier
     this._store,
     this._repository, {
     required AttachmentStore attachmentStore,
+    required TradingCalendarService tradingCalendar,
     AppLogger? logger,
     bool systemIsEnglish = false,
     String Function(String prefix)? idFactory,
     // ignore: prefer_initializing_formals
-  }) : _attachmentStore = attachmentStore,
+  }) : _tradingCalendar = tradingCalendar,
+       // ignore: prefer_initializing_formals
+       _attachmentStore = attachmentStore,
        // ignore: prefer_initializing_formals
        _systemIsEnglish = systemIsEnglish,
        // ignore: prefer_initializing_formals
@@ -179,6 +183,7 @@ class VeriFinController extends ChangeNotifier
     LocalKeyValueStore store, {
     required LedgerRepository repository,
     AttachmentStore? attachmentStore,
+    TradingCalendarService? tradingCalendar,
     AppLogger? logger,
     bool systemIsEnglish = false,
     String Function(String prefix)? idFactory,
@@ -194,6 +199,7 @@ class VeriFinController extends ChangeNotifier
       store,
       repository,
       attachmentStore: resolvedAttachmentStore,
+      tradingCalendar: tradingCalendar ?? TradingCalendarService(),
       logger: logger,
       systemIsEnglish: systemIsEnglish,
       idFactory: idFactory,
@@ -218,6 +224,8 @@ class VeriFinController extends ChangeNotifier
   final LedgerRepository _repository;
   @override
   final AttachmentStore _attachmentStore;
+  @override
+  final TradingCalendarService _tradingCalendar;
   @override
   final AppLogger? _logger;
   @override

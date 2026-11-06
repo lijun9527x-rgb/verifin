@@ -434,7 +434,13 @@ mixin _ControllerOps on ChangeNotifier, _ControllerState {
       if (index == -1) {
         return false;
       }
-      next[index] = rule;
+      final current = next[index];
+      next[index] = rule.copyWith(
+        handledDates: {...current.handledDates, ...rule.handledDates},
+        nextRunDate: rule.nextRunDate.isBefore(current.nextRunDate)
+            ? current.nextRunDate
+            : rule.nextRunDate,
+      );
     }
     try {
       await _repository.saveRecurringRules(next);
@@ -601,7 +607,11 @@ mixin _ControllerOps on ChangeNotifier, _ControllerState {
   Map<String, Set<String>> dueRecurringMissingRates(DateTime now) {
     final result = <String, Set<String>>{};
     for (final rule in recurringRules.where((rule) => rule.active)) {
-      final dueDates = dueDatesFor(rule, now);
+      final dueDates = dueDatesFor(
+        rule,
+        now,
+        isTradingDay: _tradingCalendar.isTradingDay,
+      );
       if (dueDates.isEmpty) continue;
       for (final due in dueDates) {
         final materialized = _materializeRecurringEntry(rule, due);
@@ -730,21 +740,127 @@ mixin _ControllerOps on ChangeNotifier, _ControllerState {
   /// Atomically posts all due recurring entries and advances only dates that
   /// were successfully materialized. A missing rate leaves that due date in
   /// place for retry. Returns -1 if persistence fails.
-  Future<int> applyDueRecurring(DateTime now) async {
+  List<int> get tradingCalendarYears => _tradingCalendar.years;
+
+  bool tradingCalendarReady(DateTime date) =>
+      _tradingCalendar.isTradingDay(date) != null;
+
+  DateTime? nextTradingDate(RecurringRule rule) =>
+      _tradingCalendar.nextTradingDay(
+        rule.nextRunDate.isBefore(rule.startDate)
+            ? rule.startDate
+            : rule.nextRunDate,
+      );
+
+  Future<void> syncTradingCalendar(DateTime now, {bool force = false}) async {
+    final today = shanghaiDate(now);
+    final years = <int>{today.year};
+    for (final rule in _recurringRules) {
+      if (!rule.active ||
+          rule.frequency != RecurringFrequency.aShareTradingDay) {
+        continue;
+      }
+      final start = rule.nextRunDate.isBefore(rule.startDate)
+          ? rule.startDate
+          : rule.nextRunDate;
+      // 一次最多拉取五年，补记游标推进后下一次继续，避免异常规则无限出网。
+      for (
+        var year = start.year;
+        year <= today.year && year < start.year + 5;
+        year++
+      ) {
+        if (year >= 2000 && year <= 2200) years.add(year);
+      }
+      if (start.year > today.year && start.year <= today.year + 1) {
+        years.add(start.year);
+      }
+    }
+    await _tradingCalendar.ensureYears(years, now, force: force);
+    notifyListeners();
+  }
+
+  Future<T> _serializeRecurring<T>(Future<T> Function() action) {
+    final task = _recurringGenerationTail.then((_) => action());
+    _recurringGenerationTail = task.then<void>(
+      (_) {},
+      onError: (Object error, StackTrace stack) {
+        _logger?.warning(
+          'Recurring operation failed: ${error.runtimeType}',
+          source: 'recurring',
+        );
+      },
+    );
+    return task;
+  }
+
+  /// 跳过日历里下一次应记日期，持久化回执但不修改任何资产或交易。
+  Future<bool> skipNextTradingOccurrence(
+    String ruleId,
+    DateTime expectedDate,
+  ) => _serializeRecurring(() async {
+    final index = _recurringRules.indexWhere((rule) => rule.id == ruleId);
+    if (index < 0) return false;
+    final rule = _recurringRules[index];
+    final date = nextTradingDate(rule);
+    if (rule.frequency != RecurringFrequency.aShareTradingDay ||
+        date != expectedDate) {
+      return false;
+    }
+    final next = List<RecurringRule>.of(_recurringRules);
+    next[index] = rule.copyWith(
+      handledDates: {...rule.handledDates, tradingDateKey(date!)},
+      nextRunDate: advanceRecurring(date, rule.frequency),
+    );
+    try {
+      await _repository.saveRecurringRules(next);
+    } catch (error, stackTrace) {
+      _handlePersistError(error, stackTrace);
+      return false;
+    }
+    _recurringRules
+      ..clear()
+      ..addAll(next);
+    notifyListeners();
+    return true;
+  });
+
+  Future<int> applyDueRecurring(DateTime now) => _serializeRecurring(() async {
+    if (_recurringRules.any(
+      (rule) =>
+          rule.active && rule.frequency == RecurringFrequency.aShareTradingDay,
+    )) {
+      await syncTradingCalendar(now);
+    }
+    return _applyDueRecurring(now);
+  });
+
+  Future<int> _applyDueRecurring(DateTime now) async {
     var generated = 0;
     final nextEntries = List<LedgerEntry>.of(_entries);
     final nextRules = List<RecurringRule>.of(_recurringRules);
     final existingIds = nextEntries.map((e) => e.id).toSet();
     for (var i = 0; i < nextRules.length; i++) {
       final rule = nextRules[i];
-      final dueDates = dueDatesFor(rule, now);
+      final dueDates = dueDatesFor(
+        rule,
+        now,
+        isTradingDay: _tradingCalendar.isTradingDay,
+      );
       if (dueDates.isEmpty) {
         continue;
       }
       DateTime? lastProcessed;
+      final handled = {...rule.handledDates};
+      final trading = rule.frequency == RecurringFrequency.aShareTradingDay;
       for (final due in dueDates) {
+        final dateKey = tradingDateKey(due);
+        if (trading && handled.contains(dateKey)) {
+          lastProcessed = due;
+          continue;
+        }
         final id = 'entry_recur_${rule.id}_${due.millisecondsSinceEpoch}';
         if (!existingIds.add(id)) {
+          if (trading) handled.add(dateKey);
           lastProcessed = due;
           continue;
         }
@@ -754,11 +870,13 @@ mixin _ControllerOps on ChangeNotifier, _ControllerState {
           break;
         }
         nextEntries.add(materialized.entry!);
+        if (trading) handled.add(dateKey);
         generated += 1;
         lastProcessed = due;
       }
       if (lastProcessed != null) {
         nextRules[i] = rule.copyWith(
+          handledDates: handled,
           nextRunDate: advanceRecurring(
             lastProcessed,
             rule.frequency,

@@ -3368,5 +3368,15 @@
     }
   },
   "assetHistoryMissing": "未保存的月份留空",
-  "accountCustomNameLabel": "自定义名称（选填）"
+  "accountCustomNameLabel": "自定义名称（选填）",
+  "recurringTradingDay": "每个A股交易日",
+  "tradingCalendarSync": "同步交易日历",
+  "tradingCalendarCached": "已缓存交易日历：{years}",
+  "@tradingCalendarCached": {"placeholders": {"years": {"type": "String"}}},
+  "tradingCalendarUnavailable": "交易日历未就绪，暂不补记",
+  "recurringSkipNext": "跳过下一次",
+  "recurringSkipConfirm": "跳过 {date} 的这一次记账？",
+  "@recurringSkipConfirm": {"placeholders": {"date": {"type": "String"}}},
+  "recurringSkipDone": "已跳过，不会再次补记",
+  "recurringTradingHint": "打开应用时补记；新规则默认从明天开始"
 }

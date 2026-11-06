@@ -5233,4 +5233,34 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get accountCustomNameLabel => 'Custom name (optional)';
+
+  @override
+  String get recurringTradingDay => 'Every A-share trading day';
+
+  @override
+  String get tradingCalendarSync => 'Sync trading calendar';
+
+  @override
+  String tradingCalendarCached(String years) {
+    return 'Cached trading years: $years';
+  }
+
+  @override
+  String get tradingCalendarUnavailable =>
+      'Trading calendar unavailable; posting paused';
+
+  @override
+  String get recurringSkipNext => 'Skip next occurrence';
+
+  @override
+  String recurringSkipConfirm(String date) {
+    return 'Skip the occurrence on $date?';
+  }
+
+  @override
+  String get recurringSkipDone => 'Skipped; it will not be posted again';
+
+  @override
+  String get recurringTradingHint =>
+      'Posted when the app opens; new rules start tomorrow by default';
 }
